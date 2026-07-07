@@ -57,6 +57,7 @@
 </head>
 <body>
 
+    <!-- Top Navbar -->
     <div class="navbar">
         <div class="navbar-brand">Divjot CRM <span>(Production V25 - Final secured)</span></div>
         <div class="navbar-right">
@@ -66,15 +67,19 @@
     </div>
 
     <div class="container">
+        <!-- Main Header -->
         <div class="welcome-header">
             <h2>Employee Dashboard</h2>
             <span class="user-badge">Logged in: {{ request.user.username }}</span>
         </div>
 
+        <!-- Dashboard Grid Layout -->
         <div class="dashboard-grid">
             
+            <!-- LEFT COLUMN: FORMS -->
             <div class="left-column">
                 
+                <!-- Check Past Customer Section -->
                 <div class="card search-box">
                     <label style="color: #0056b3; font-weight: bold; margin-bottom: 8px;">Check Past Customer (Phone Number)</label>
                     <div class="form-group-inline">
@@ -84,10 +89,13 @@
                     </div>
                 </div>
 
+                <!-- New Order Form Section -->
                 <div class="card">
                     <div class="card-title">New Order Form</div>
                     <form method="POST" action="">
-                        {% csrf_with_token %} <div class="form-group" style="margin-bottom: 15px;">
+                        {% csrf_token %}
+                        
+                        <div class="form-group" style="margin-bottom: 15px;">
                             <label>Name</label>
                             <input type="text" name="name" placeholder="Sajara khatun">
                         </div>
@@ -144,10 +152,12 @@
                 </div>
             </div>
 
+            <!-- RIGHT COLUMN: DATE FILTER & ORDERS TABLE -->
             <div class="right-column">
                 <div class="card" style="min-height: 560px;">
                     <div class="card-title" style="color: #333;">Your Orders</div>
                     
+                    <!-- DATE FILTER FORM -->
                     <form method="GET" action="" class="filter-form">
                         <div class="filter-group">
                             <label>From Date</label>
@@ -161,6 +171,7 @@
                         <a href="{% url 'dashboard' %}" style="padding: 8px 10px; color:#6c757d; font-size:13px; text-decoration:none;">Clear</a>
                     </form>
 
+                    <!-- ORDERS TABLE -->
                     <div class="table-responsive">
                         <table class="order-table">
                             <thead>
@@ -175,18 +186,27 @@
                             <tbody>
                                 {% for order in orders %}
                                 <tr>
-                                    <td>{{ order.created_at|date:"d-m-Y" }}<br><span style="font-size:11px; color:#888;">{{ order.created_at|date:"H:i" }}</span></td>
+                                    <!-- Date -->
+                                    <td>{{ order.date|date:"d-m-Y" }}<br><span style="font-size:11px; color:#888;">{{ order.date|date:"H:i" }}</span></td>
                                     
+                                    <!-- Customer Info -->
                                     <td>
                                         <strong>{{ order.customer_name }}</strong><br>
-                                        <span style="font-size: 12px; color: #555;">{{ order.customer_phone }}</span><br>
+                                        <span style="font-size: 12px; color: #555;">{{ order.phone_1 }}</span><br>
                                         <span style="font-size: 11px; color:#777;">{{ order.district }}, {{ order.state }}</span>
                                     </td>
                                     
-                                    <td>{{ order.details|default:"Ayurvedic Medicine Pack" }}</td>
+                                    <!-- Items Ordered -->
+                                    <td>
+                                        {% if order.product_1_name %}{{ order.product_1_name }} (x{{ order.product_1_count }}){% endif %}
+                                        {% if order.product_2_name %}<br>{{ order.product_2_name }} (x{{ order.product_2_count }}){% endif %}
+                                        {% if order.product_3_name %}<br>{{ order.product_3_name }} (x{{ order.product_3_count }}){% endif %}
+                                    </td>
                                     
-                                    <td>₹{{ order.total_amount|default:"0" }}</td>
+                                    <!-- Total -->
+                                    <td>₹{{ order.grand_total|default:"0" }}</td>
                                     
+                                    <!-- Status / Action -->
                                     <td>
                                         <span class="status-badge {% if order.status == 'Success' %}status-success{% else %}status-pending{% endif %}">
                                             {{ order.status|default:"Pending" }}

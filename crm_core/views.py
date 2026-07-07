@@ -8,21 +8,21 @@ from datetime import datetime
 @login_required
 def dashboard_view(request):
     user = request.user
-    orders = Order.objects.filter(employee=user).order_by('-created_at')
+    # Database keywords ke hisab se '-date' use kiya hai
+    orders = Order.objects.filter(employee=user).order_by('-date')
     
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     
     if start_date and end_date:
-        orders = orders.filter(created_at__date__range=[start_date, end_date])
+        orders = orders.filter(date__date__range=[start_date, end_date])
 
     context = {
         'orders': orders,
         'start_date': start_date,
         'end_date': end_date,
     }
-    # Yahan humne app name explicit jod diya
-    return render(request, 'crm_core/dashboard.html', context)
+    return render(request, 'dashboard.html', context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -36,8 +36,7 @@ def login_view(request):
                 return redirect('dashboard')
     else:
         form = AuthenticationForm()
-    # Yahan bhi explicit app name jod diya
-    return render(request, 'crm_core/login.html', {'form': form})
+    return render(request, 'login.html', {'form': form})
 
 def logout_view(request):
     logout(request)
