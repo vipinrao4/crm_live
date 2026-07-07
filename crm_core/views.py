@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
@@ -8,7 +9,7 @@ from datetime import datetime
 @login_required
 def dashboard_view(request):
     user = request.user
-    # Aapke model ke hisab se exact '-date' keyword use kiya hai
+    # Aapke model ke hisab se exact '-date' filter use kiya hai
     orders = Order.objects.filter(employee=user).order_by('-date')
     
     start_date = request.GET.get('start_date')
@@ -22,7 +23,12 @@ def dashboard_view(request):
         'start_date': start_date,
         'end_date': end_date,
     }
-    return render(request, 'dashboard.html', context)
+    
+    # Fallback Mechanism: Agar templates root me ho ya app ke andar, dono check karega
+    try:
+        return render(request, 'dashboard.html', context)
+    except Exception:
+        return render(request, 'crm_core/dashboard.html', context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -36,7 +42,11 @@ def login_view(request):
                 return redirect('dashboard')
     else:
         form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
+        
+    try:
+        return render(request, 'login.html', {'form': form})
+    except Exception:
+        return render(request, 'crm_core/login.html', {'form': form})
 
 def logout_view(request):
     logout(request)
