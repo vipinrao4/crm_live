@@ -5,5 +5,4 @@ urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('api/save-order/', views.save_order_api, name='save_order_api'),
 ]
