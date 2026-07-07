@@ -9,6 +9,38 @@ from datetime import datetime
 @login_required
 def dashboard_view(request):
     user = request.user
+    
+    # 1. Jab Employee Naya Order Form Submit Kare (POST Request)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        phone_1 = request.POST.get('phone_1')
+        phone_2 = request.POST.get('phone_2')
+        address = request.POST.get('address')
+        pincode = request.POST.get('pincode')
+        tehsil = request.POST.get('tehsil')
+        post_office = request.POST.get('post')
+        district = request.POST.get('district')
+        state = request.POST.get('state')
+        
+        # Database me naya order create karna aapke fields ke hisab se
+        Order.objects.create(
+            employee=user,
+            customer_name=name,
+            phone_1=phone_1,
+            phone_2=phone_2,
+            address=address,
+            pincode=pincode,
+            tehsil=tehsil,
+            post_office=post_office,
+            district=district,
+            state=state,
+            date=datetime.now().date(), # Sirf date save hogi bina time ke
+            status='Pending'
+        )
+        # Submit hone ke baad wapas dashboard par redirect taaki table refresh ho jaye
+        return redirect('dashboard')
+
+    # 2. GET Request - Data Dikhane Aur Filter Karne Ke Liye
     raw_orders = Order.objects.filter(employee=user).order_by('-date')
     
     start_date = request.GET.get('start_date')
@@ -17,7 +49,7 @@ def dashboard_view(request):
     if start_date and end_date:
         raw_orders = raw_orders.filter(date__range=[start_date, end_date])
 
-    # Backend standard formatting: Date ko string bana kar bhej rahe hain taaki HTML filter crash na ho
+    # Backend Formatting: Date ko string bana kar bhej rahe hain taaki HTML crash na ho
     orders = []
     for order in raw_orders:
         formatted_date = order.date.strftime("%d-%m-%Y") if order.date else ""
@@ -29,10 +61,6 @@ def dashboard_view(request):
             'state': order.state,
             'product_1_name': getattr(order, 'product_1_name', ''),
             'product_1_count': getattr(order, 'product_1_count', 0),
-            'product_2_name': getattr(order, 'product_2_name', ''),
-            'product_2_count': getattr(order, 'product_2_count', 0),
-            'product_3_name': getattr(order, 'product_3_name', ''),
-            'product_3_count': getattr(order, 'product_3_count', 0),
             'grand_total': order.grand_total,
             'status': order.status,
         })
@@ -57,6 +85,9 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
+                # Agar admin hai toh admin page par bheje, varna normal dashboard
+                if user.is_staff or user.is_superuser:
+                    return redirect('/admin/')
                 return redirect('dashboard')
     else:
         form = AuthenticationForm()
