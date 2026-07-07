@@ -8,7 +8,7 @@ from datetime import datetime
 @login_required
 def dashboard_view(request):
     user = request.user
-    # Database keywords ke hisab se '-date' use kiya hai
+    # Aapke model ke hisab se exact '-date' keyword use kiya hai
     orders = Order.objects.filter(employee=user).order_by('-date')
     
     start_date = request.GET.get('start_date')

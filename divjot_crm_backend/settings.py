@@ -10,7 +10,7 @@ SECRET_KEY = 'django-insecure-divjot-crm-production-key-secured'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# 1. ALLOWED HOSTS Fix (Yellow Screen/DisallowedHost Error Resolution)
+# ALLOWED HOSTS Fix (Yellow Screen/DisallowedHost Error Resolution)
 ALLOWED_HOSTS = ['crm-live-pyzh.onrender.com', '127.0.0.1', 'localhost']
 
 # Application definition
@@ -37,13 +37,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'divjot_crm_backend.urls'
 
-# 2. TEMPLATES SETTING Fix (TemplateDoesNotExist: login.html Error Resolution)
+# MULTI-PATH TEMPLATES SETTING (TemplateDoesNotExist hamesha ke liye khatam karne ke liye)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
             os.path.join(BASE_DIR, 'templates'),
             os.path.join(BASE_DIR, 'crm_core', 'templates'),
+            os.path.join(BASE_DIR, 'crm_core', 'templates', 'crm_core'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -59,7 +60,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
-# Database Setup (SQLite for testing - note: Render free tier wipes data on restart)
+# Database Setup
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
