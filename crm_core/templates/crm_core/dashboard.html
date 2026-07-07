@@ -3,737 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Divjot CRM - Live Demo V25</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
+    <title>Employee Dashboard - Divjot CRM</title>
     <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar { background-color: #2c3e50; }
-        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
-        .dashboard-section { display: none; }
-        .active-section { display: block; }
-        .badge-admin { background-color: #e74c3c; }
-        .badge-emp { background-color: #2ecc71; }
-        .search-box-emp { background-color: #e8f4fd; border: 1px dashed #3498db; }
-        .product-row-bg { background-color: #f8f9fa; padding: 8px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #e9ecef; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding-bottom: 40px; }
         
-        .summary-card { background-color: #ffffff; border: 1px solid #dee2e6; }
-        .summary-header { background-color: #34495e; color: #ffffff; font-weight: bold; }
-        .text-new-count { color: #0d6efd; font-weight: bold; font-size: 14px; }
-        .text-repeat-count { color: #d63384; font-weight: bold; font-size: 14px; }
-        .text-total-count { color: #198754; font-weight: bold; font-size: 14px; }
+        /* Navbar Styling */
+        .navbar { background-color: #23272a; color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar-brand { font-size: 20px; font-weight: bold; }
+        .navbar-brand span { font-size: 12px; color: #888; font-weight: normal; }
+        .navbar-right { display: flex; align-items: center; gap: 15px; }
+        .logout-btn { background-color: #dc3545; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 14px; font-weight: bold; }
         
-        .text-ads-spent { color: #ff9f43; font-weight: bold; font-size: 14px; }
-        .text-average-calc { color: #6f42c1; font-weight: bold; font-size: 14px; }
-
-        /* Color Coding based on Status */
-        .table tbody tr.status-generated td { background-color: #d1e7dd !important; color: #0f5132 !important; }
-        .table tbody tr.status-cancelled td { background-color: #f8d7da !important; color: #842029 !important; }
-        .table tbody tr.status-pending td { background-color: #ffffff !important; color: #212529 !important; }
-
-        .status-btn-container { display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: wrap; }
-        .btn-square-status { width: 32px; height: 34px; padding: 0; display: inline-flex; justify-content: center; align-items: center; border-radius: 4px; font-size: 15px; border: none; cursor: pointer; transition: transform 0.1s ease; }
-        .btn-square-status:active { transform: scale(0.9); }
-        .btn-square-gen { background-color: #198754; color: white; }
-        .btn-square-gen:hover { background-color: #146c43; }
-        .btn-square-can { background-color: #dc3545; color: white; }
-        .btn-square-can:hover { background-color: #b02a37; }
+        /* Layout Structure */
+        .container { max-width: 1400px; margin: 25px auto; padding: 0 20px; }
+        .welcome-header { margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        .user-badge { background-color: #28a745; color: white; padding: 4px 10px; border-radius: 4px; font-size: 14px; }
         
-        .btn-wa-notify { background-color: #25d366; color: white; width: auto; height: 34px; font-size: 12px; padding: 0 8px; font-weight: bold; border-radius: 4px; border: none; }
-        .btn-wa-notify:hover { background-color: #1ebd54; }
-
-        .header-filter-box { width: 100%; padding: 3px 5px; font-size: 11px; border: 1px solid #ced4da; border-radius: 4px; margin-top: 6px; font-weight: normal; color: #212529; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start; }
+        @media (max-width: 992px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        
+        /* Card Styling */
+        .card { background: white; border-radius: 8px; border: 1px solid #e1e4e8; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .card-title { font-size: 18px; color: #0056b3; margin-bottom: 15px; font-weight: 600; }
+        
+        /* Form & Input Elements */
+        .search-box { border: 2px dashed #b4d3fe; background-color: #f1f7ff; }
+        .form-group-inline { display: flex; gap: 10px; margin-bottom: 15px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444; }
+        input, select { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; }
+        input:focus, select:focus { border-color: #80bdff; outline: none; }
+        
+        .btn-primary { background-color: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-search { background-color: #007bff; color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; }
+        .btn-clear { background-color: #e2e6ea; color: #333; border: 1px solid #ced4da; padding: 0 12px; border-radius: 4px; cursor: pointer; }
+        
+        /* Date Filter Form */
+        .filter-form { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; }
+        .filter-group { flex: 1; min-width: 120px; }
+        
+        /* Table Styling */
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 15px; }
+        .order-table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 14px; }
+        .order-table th { background-color: #f8f9fa; color: #555; font-weight: bold; text-align: left; padding: 10px; border-bottom: 2px solid #dee2e6; border-top: 1px solid #dee2e6; }
+        .order-table td { padding: 12px 10px; border-bottom: 1px solid #dee2e6; vertical-align: top; }
+        .order-table tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-pending { background-color: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-dark px-4 py-3 text-white d-flex justify-content-between align-items-center">
-        <h4 class="m-0">Divjot CRM <span class="fs-6 text-muted">(Production V25 - Final secured)</span></h4>
-        <div class="d-flex align-items-center gap-3">
-            {% if is_admin %}
-            <span class="text-white-50">Choose Role:</span>
-            <select id="roleSelector" class="form-select form-select-sm" style="width: 180px;" onchange="switchView()">
-                <option value="employee">Employee View</option>
-                <option value="master">Master Login (Admin)</option>
-            </select>
-            {% endif %}
-            <a href="{% url 'logout' %}" class="btn btn-sm btn-danger fw-bold">Logout</a>
+    <div class="navbar">
+        <div class="navbar-brand">Divjot CRM <span>(Production V25 - Final secured)</span></div>
+        <div class="navbar-right">
+            <span style="font-size: 14px; color: #ccc;">Role: <strong>Employee View</strong></span>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
         </div>
-    </nav>
-
-    <div class="container my-4">
-
-        <div id="employeeSection" class="dashboard-section active-section">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Employee Dashboard <span class="badge badge-emp fs-6">Logged in: {{ current_username }}</span></h2>
-            </div>
-
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <div class="card p-3 mb-3 search-box-emp">
-                        <label class="form-label small mb-1 fw-bold text-primary">Check Past Customer (Phone Number)</label>
-                        <div class="input-group input-group-sm mb-2">
-                            <input type="text" id="empSearchPhone" class="form-control" placeholder="Enter phone 1 to check repeat...">
-                            <button class="btn btn-primary" type="button" onclick="checkPastCustomer()">Search</button>
-                            <button class="btn btn-outline-secondary" type="button" onclick="clearEmpSearch()">X</button>
-                        </div>
-                        <div id="searchResultArea" style="display:none;">
-                            <div class="p-2 bg-white rounded border border-warning small d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong id="resName" class="text-dark"></strong> <span class="text-muted" id="resProd"></span>
-                                    <br><span class="text-xs text-muted" id="resAddr" style="font-size:11px;"></span>
-                                </div>
-                                <button class="btn btn-sm btn-warning fw-bold py-1 px-2 text-dark" style="font-size:12px;" onclick="autoFillRepeatOrder()">Repeat Order</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card p-4" id="formCard">
-                        <h5 class="card-title mb-3 text-primary" id="formTitle">New Order Form</h5>
-                        <form id="orderForm" onsubmit="handleFormSubmit(event)">
-                            <input type="hidden" id="formEditId" value="">
-                            <input type="hidden" id="formIsRepeat" value="false">
-
-                            <div class="mb-2">
-                                <label class="form-label small mb-1 fw-bold">Name</label>
-                                <input type="text" id="custName" class="form-control form-control-sm" placeholder="Sajara khatun" required>
-                            </div>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Phone Number 1 (10 Digits)*</label>
-                                    <input type="tel" id="custPhone" class="form-control form-control-sm" pattern="[0-9]{10}" maxlength="10" placeholder="e.g. 9876543210" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Phone Number 2 (10 Digits)*</label>
-                                    <input type="tel" id="custPhone2" class="form-control form-control-sm" pattern="[0-9]{10}" maxlength="10" placeholder="e.g. 8877665544" required>
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="form-label small mb-1 fw-bold">Address</label>
-                                <input type="text" id="custAddress" class="form-control form-control-sm" placeholder="Vill / Street Name" required>
-                            </div>
-                            
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <label class="form-label small mb-1 fw-bold">Pincode (6 digits)*</label>
-                                    <span id="pincodeLoader" class="loading-text fw-bold">Fetching...</span>
-                                </div>
-                                <input type="text" id="custPincode" class="form-control form-control-sm" pattern="[0-9]{6}" maxlength="6" placeholder="Type pincode" onkeyup="checkPincode(this.value)" required>
-                            </div>
-
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Post</label>
-                                    <select id="custPost" class="form-select form-select-sm" required>
-                                        <option value="">-- Enter Pincode First --</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Tehsil</label>
-                                    <input type="text" id="custTehsil" class="form-control form-control-sm" placeholder="Enter Tehsil manually" required>
-                                </div>
-                            </div>
-                            
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">District</label>
-                                    <input type="text" id="custDistrict" class="form-control form-control-sm bg-light" readonly required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">State</label>
-                                    <input type="text" id="custState" class="form-control form-control-sm bg-light" readonly required>
-                                </div>
-                            </div>
-
-                            <hr>
-                            <h6 class="text-secondary mb-2">Product Details (Fill up to 3 products)</h6>
-                            
-                            <div class="row g-2 align-items-end product-row-bg">
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Product 1</label>
-                                    <select id="prodSelect1" class="form-select form-select-sm" onchange="autoCalculatePriceRow(1)" required>
-                                        <option value="">-- Select Product --</option>
-                                        <option value="Asthakesri">Asthakesri</option>
-                                        <option value="Immunity booster">Immunity booster</option>
-                                        <option value="Gastro">Gastro</option>
-                                        <option value="Pain Tablet">Pain Tablet</option>
-                                        <option value="Pain Oil">Pain Oil</option>
-                                        <option value="Onion Oil">Onion Oil</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small mb-1 fw-bold">Count</label>
-                                    <input type="number" id="prodCount1" class="form-control form-control-sm" min="1" value="1" onchange="autoCalculatePriceRow(1)" required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small mb-1 fw-bold">Price (₹)</label>
-                                    <input type="number" id="prodPrice1" class="form-control form-control-sm" value="0" oninput="manualGrandTotalCalculate()" required>
-                                </div>
-                            </div>
-
-                            <div class="row g-2 align-items-end product-row-bg">
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Product 2 (Optional)</label>
-                                    <select id="prodSelect2" class="form-select form-select-sm" onchange="autoCalculatePriceRow(2)">
-                                        <option value="">-- None --</option>
-                                        <option value="Asthakesri">Asthakesri</option>
-                                        <option value="Immunity booster">Immunity booster</option>
-                                        <option value="Gastro">Gastro</option>
-                                        <option value="Pain Tablet">Pain Tablet</option>
-                                        <option value="Pain Oil">Pain Oil</option>
-                                        <option value="Onion Oil">Onion Oil</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" id="prodCount2" class="form-control form-control-sm" min="0" value="0" onchange="autoCalculatePriceRow(2)">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" id="prodPrice2" class="form-control form-control-sm" value="0" oninput="manualGrandTotalCalculate()">
-                                </div>
-                            </div>
-
-                            <div class="row g-2 align-items-end product-row-bg">
-                                <div class="col-md-6">
-                                    <label class="form-label small mb-1 fw-bold">Product 3 (Optional)</label>
-                                    <select id="prodSelect3" class="form-select form-select-sm" onchange="autoCalculatePriceRow(3)">
-                                        <option value="">-- None --</option>
-                                        <option value="Asthakesri">Asthakesri</option>
-                                        <option value="Immunity booster">Immunity booster</option>
-                                        <option value="Gastro">Gastro</option>
-                                        <option value="Pain Tablet">Pain Tablet</option>
-                                        <option value="Pain Oil">Pain Oil</option>
-                                        <option value="Onion Oil">Onion Oil</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" id="prodCount3" class="form-control form-control-sm" min="0" value="0" onchange="autoCalculatePriceRow(3)">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" id="prodPrice3" class="form-control form-control-sm" value="0" oninput="manualGrandTotalCalculate()">
-                                </div>
-                            </div>
-
-                            <div class="p-2 mb-3 bg-dark text-white rounded d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">Grand Total Price:</span>
-                                <span class="fw-bold fs-5 text-warning">₹<span id="grandTotalPrice">0</span></span>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100 btn-sm py-2 fw-bold" id="submitBtn">Submit Order</button>
-                            <button type="button" class="btn btn-link w-100 btn-sm mt-1 text-danger text-decoration-none" id="cancelEditBtn" style="display:none;" onclick="cancelEditMode()">Cancel Edit</button>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="card p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <h5 class="card-title m-0 text-secondary">Your Orders</h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle small" id="empOrderTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Customer Info</th>
-                                        <th>Items Ordered</th>
-                                        <th>Total</th>
-                                        <th>Status / Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="employeeTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="masterSection" class="dashboard-section" style="display: none;">
-            <div class="mb-4">
-                <h2>Master Admin Control <span class="badge badge-admin fs-6">All Access</span></h2>
-            </div>
-            
-            <div class="card p-4 mb-4 bg-light">
-                <div class="row g-3">
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold text-secondary">Filter data by specific date range</label>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="small">From:</span>
-                            <input type="date" id="masterStartDate" class="form-control form-control-sm" style="width:160px;">
-                            <span class="small">To:</span>
-                            <input type="date" id="masterEndDate" class="form-control form-control-sm" style="width:160px;">
-                            <button class="btn btn-sm btn-dark fw-bold px-3" onclick="applyMasterDateFilter()">Apply Filter</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="resetMasterDateFilter()">Reset All</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card p-3 bg-white border-start border-danger border-4">
-                        <span class="text-muted small uppercase fw-bold">Filtered Total Orders</span>
-                        <strong id="totalOrdersCount" class="fs-3 text-danger">0</strong>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 bg-white border-start border-primary border-4">
-                        <span class="text-muted small uppercase fw-bold">Filtered Total Products Sold (Units)</span>
-                        <strong id="totalBottlesCount" class="fs-3 text-primary">0</strong>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 bg-white border-start border-warning border-4">
-                        <span class="text-muted small uppercase fw-bold">Repeat Orders Counter</span>
-                        <strong id="totalRepeatCount" class="fs-3 text-warning-emphasis">0</strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card p-4 mb-4 summary-card">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="card-title m-0 text-dark fw-bold">Employee Performance Summary</h5>
-                    <button class="btn btn-sm btn-outline-primary fw-bold" onclick="exportSummaryExcel()">Download Excel</button>
-                </div>
-                <div class="table-responsive">
-                    <table id="summaryTable" class="table table-bordered table-striped m-0 small align-middle">
-                        <thead>
-                            <tr class="summary-header text-center">
-                                <th class="text-start">Employee Name</th>
-                                <th>New Orders (Product Count)</th>
-                                <th>Repeat Orders (Product Count)</th>
-                                <th>Total Products Sold</th>
-                                <th style="width: 140px;" class="bg-light text-dark">Ads Spent (₹)</th>
-                                <th style="width: 160px;" class="bg-light text-dark">Avg Cost / Unit (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="employeeSummaryTableBody">
-                            {% for emp in summary_data %}
-                            <tr class="text-center fw-bold text-dark" id="row_{{ emp.username }}">
-                                <td class="text-start text-dark fw-bold">{{ emp.username }}</td>
-                                <td class="text-new-count" id="new_count_{{ emp.username }}">0 Units</td>
-                                <td class="text-repeat-count" id="repeat_count_{{ emp.username }}">0 Units</td>
-                                <td class="text-total-count" id="total_count_{{ emp.username }}">0 Units</td>
-                                <td>
-                                    <input type="number" class="form-control form-control-sm text-center border-warning fw-bold text-ads-spent" style="width:110px;" placeholder="Type here..." oninput="reCalculateRowFormula('{{ emp.username }}', this.value)">
-                                </td>
-                                <td class="text-average-calc bg-light" id="avgCalc_{{ emp.username }}">₹0.00</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="card-title m-0 text-danger fw-bold">Master Order Log</h5>
-                    <button class="btn btn-sm btn-success fw-bold" onclick="exportLogExcel()">Export Excel Log</button>
-                </div>
-                <div class="table-responsive">
-                    <table id="masterLogTable" class="table table-bordered align-middle small">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Date</th>
-                                <th>Emp</th>
-                                <th>Customer Details</th>
-                                <th>Full Address</th>
-                                <th>Items Summary</th>
-                                <th>Grand Total (₹)</th>
-                                <th class="text-center" style="width: 155px;">Status / Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="masterTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        function runHeaderFilter(tableId, colIdx, keyword) {
-            let table = document.getElementById(tableId);
-            let rows = table.getElementsByTagName("tr");
-            let cleanKeyword = keyword.toUpperCase();
-            for (let i = 1; i < rows.length; i++) {
-                if (rows[i].parentNode.tagName === 'THEAD') continue;
-                let targetCell = rows[i].getElementsByTagName("td")[colIdx];
-                if (targetCell) {
-                    let content = targetCell.textContent || targetCell.innerText;
-                    rows[i].style.display = (content.toUpperCase().indexOf(cleanKeyword) > -1) ? "" : "none";
-                }
-            }
-        }
+    <div class="container">
+        <div class="welcome-header">
+            <h2>Employee Dashboard</h2>
+            <span class="user-badge">Logged in: {{ request.user.username }}</span>
+        </div>
 
-        const priceList = {
-            "Asthakesri": 500, "Immunity booster": 450, "Gastro": 300,
-            "Pain Tablet": 200, "Pain Oil": 150, "Onion Oil": 250
-        };
-
-        let temporaryFoundOrder = null;
-        let isUserAdmin = "{{ is_admin }}" === "True";
-
-        // Global Local Database Cache
-        let ordersDB = [
-            { 
-                id: 101, date: "2026-07-05", employee: "Laiba", name: "Sajara khatun", phone: "9876543210", phone2: "8877665544",
-                address: "House 24", post: "Aliganj S.O", tehsil: "Aliganj", district: "Lucknow", state: "Uttar Pradesh", pincode: "226024",
-                products: [{ item: "Asthakesri", qty: 2 }, { item: "Gastro", qty: 1 }], 
-                grand_total: 1300, isRepeat: false, status: "pending" 
-            },
-            { 
-                id: 102, date: "2026-07-06", employee: "Kalpana", name: "Ramesh Kumar", phone: "9988776655", phone2: "9988776611",
-                address: "Hazratganj", post: "Hazratganj S.O", tehsil: "Lucknow", district: "Lucknow", state: "Uttar Pradesh", pincode: "226001",
-                products: [{ item: "Immunity booster", qty: 1 }], 
-                grand_total: 450, isRepeat: false, status: "generated" 
-            }
-        ];
-
-        function autoCalculatePriceRow(rowId) {
-            const product = document.getElementById(`prodSelect${rowId}`).value;
-            const count = parseInt(document.getElementById(`prodCount${rowId}`).value) || 0;
-            let expectedPrice = (product && priceList[product]) ? priceList[product] * count : 0;
-            document.getElementById(`prodPrice${rowId}`).value = expectedPrice;
-            manualGrandTotalCalculate();
-        }
-
-        function manualGrandTotalCalculate() {
-            let total = 0;
-            for(let i=1; i<=3; i++) {
-                total += parseFloat(document.getElementById(`prodPrice${i}`).value) || 0;
-            }
-            document.getElementById("grandTotalPrice").innerText = total;
-        }
-
-        // Centralized Render Block (Handles Filtered / Unfiltered Data Structures)
-        function renderUIPanels(customDataset = null) {
-            let workingData = customDataset || ordersDB;
-            let currentEmp = "{{ current_username }}";
-            let empBody = document.getElementById("employeeTableBody");
-            let masterBody = document.getElementById("masterTableBody");
+        <div class="dashboard-grid">
             
-            if(empBody) empBody.innerHTML = "";
-            if(masterBody) masterBody.innerHTML = "";
+            <div class="left-column">
+                
+                <div class="card search-box">
+                    <label style="color: #0056b3; font-weight: bold; margin-bottom: 8px;">Check Past Customer (Phone Number)</label>
+                    <div class="form-group-inline">
+                        <input type="text" placeholder="Enter phone 1 to check repeat...">
+                        <button class="btn-search">Search</button>
+                        <button class="btn-clear">X</button>
+                    </div>
+                </div>
 
-            let statsMap = {};
+                <div class="card">
+                    <div class="card-title">New Order Form</div>
+                    <form method="POST" action="">
+                        {% csrf_with_token %} <div class="form-group" style="margin-bottom: 15px;">
+                            <label>Name</label>
+                            <input type="text" name="name" placeholder="Sajara khatun">
+                        </div>
 
-            workingData.forEach(o => {
-                let pText = o.products.map(p => `<span class="badge bg-primary me-1">${p.item}</span> x ${p.qty}`).join("<br>");
-                let unitQtyCount = 0;
-                o.products.forEach(p => unitQtyCount += p.qty);
-
-                if(!statsMap[o.employee]) {
-                    statsMap[o.employee] = { newUnits: 0, repeatUnits: 0, totalUnits: 0 };
-                }
-                if(o.isRepeat) {
-                    statsMap[o.employee].repeatUnits += unitQtyCount;
-                } else {
-                    statsMap[o.employee].newUnits += unitQtyCount;
-                }
-                statsMap[o.employee].totalUnits += unitQtyCount;
-
-                // 1. Employee View Rows Engine
-                if (empBody && (o.employee === currentEmp || isUserAdmin)) {
-                    let statusLabel = `<span class="badge bg-secondary">${o.status.toUpperCase()}</span>`;
-                    if(o.status === 'generated') statusLabel = `<span class="badge bg-success">Generated</span>`;
-                    if(o.status === 'cancelled') statusLabel = `<span class="badge bg-danger">Cancelled</span>`;
-
-                    let actionControl = `<button class="btn btn-sm btn-outline-dark py-0 px-2 fw-bold" onclick="editOrderLocal(${o.id})">Edit</button>`;
-                    if(o.status === 'generated') actionControl = `<span class="text-muted small fw-bold">🔒 Locked</span>`;
-
-                    let row = `<tr class="status-${o.status}">
-                        <td><span class="badge bg-secondary">${o.date}</span></td>
-                        <td><strong>${o.name}</strong><br><span class="text-muted small">Ph1: ${o.phone}<br>Ph2: ${o.phone2}</span></td>
-                        <td>${pText}</td>
-                        <td class="fw-bold text-success">₹${o.grand_total}</td>
-                        <td>${statusLabel}<br>${actionControl}</td>
-                    </tr>`;
-                    
-                    if (o.employee === currentEmp || (isUserAdmin && currentEmp === o.employee)) {
-                        empBody.innerHTML += row;
-                    }
-                }
-
-                // 2. Master Admin Access Grid Engine
-                if (masterBody) {
-                    let adminButtons = isUserAdmin ? `
-                        <button class="btn-square-status btn-square-gen" title="Generate" onclick="updateOrderStatus(${o.id}, 'generated')">✓</button>
-                        <button class="btn-square-status btn-square-can" title="Cancel" onclick="updateOrderStatus(${o.id}, 'cancelled')">X</button>
-                    ` : '';
-                    
-                    let mRow = `<tr class="status-${o.status}">
-                        <td>${o.date}</td>
-                        <td><span class="badge bg-info text-dark">${o.employee}</span></td>
-                        <td><strong>${o.name}</strong><br>Ph: ${o.phone}</td>
-                        <td>${o.address}, ${o.post}, ${o.pincode}</td>
-                        <td>${o.products.map(p => `${p.item}(x${p.qty})`).join(", ")}</td>
-                        <td class="fw-bold text-success">₹${o.grand_total}</td>
-                        <td class="text-center">
-                            <div class="status-btn-container">
-                                ${adminButtons}
-                                <button class="btn-wa-notify" onclick="shareOrderOnWhatsApp(${o.id})">WhatsApp</button>
+                        <div class="form-row">
+                            <div>
+                                <label>Phone Number 1 (10 Digits)*</label>
+                                <input type="text" name="phone_1" placeholder="e.g. 9876543210" required>
                             </div>
-                        </td>
-                    </tr>`;
-                    masterBody.innerHTML += mRow;
-                }
-            });
+                            <div>
+                                <label>Phone Number 2 (10 Digits)*</label>
+                                <input type="text" name="phone_2" placeholder="e.g. 8877665544">
+                            </div>
+                        </div>
 
-            // Refresh HTML metric fields
-            for (let emp in statsMap) {
-                let nCell = document.getElementById(`new_count_${emp}`);
-                let rCell = document.getElementById(`repeat_count_${emp}`);
-                let tCell = document.getElementById(`total_count_${emp}`);
-                
-                if(nCell) nCell.innerText = statsMap[emp].newUnits + " Units";
-                if(rCell) rCell.innerText = statsMap[emp].repeatUnits + " Units";
-                if(tCell) tCell.innerText = statsMap[emp].totalUnits + " Units";
-                
-                let currentVal = document.querySelector(`#row_${emp} input`) ? document.querySelector(`#row_${emp} input`).value : 0;
-                reCalculateRowFormula(emp, currentVal);
-            }
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label>Address</label>
+                            <input type="text" name="address" placeholder="Vill / Street Name">
+                        </div>
 
-            calculateMasterCounters(workingData);
-        }
+                        <div class="form-row">
+                            <div>
+                                <label>Pincode (6 digits)* <span style="float:right; font-weight:normal; color:#666;">Fetching...</span></label>
+                                <input type="text" name="pincode" value="226016" required>
+                            </div>
+                            <div>
+                                <label>Tehsil</label>
+                                <input type="text" name="tehsil" placeholder="Enter Tehsil manually">
+                            </div>
+                        </div>
 
-        // Avg Cost Formula Processor 
-        function reCalculateRowFormula(empName, value) {
-            let adsSpent = parseFloat(value) || 0;
-            let newOrdersText = document.getElementById(`new_count_${empName}`) ? document.getElementById(`new_count_${empName}`).innerText : "0";
-            let newOrdersCount = parseFloat(newOrdersText) || 0;
-            
-            let avgCell = document.getElementById(`avgCalc_${empName}`);
-            if(avgCell) {
-                if(newOrdersCount > 0 && adsSpent > 0) {
-                    avgCell.innerText = "₹" + (adsSpent / newOrdersCount).toFixed(2);
-                } else {
-                    avgCell.innerText = "₹0.00";
-                }
-            }
-        }
+                        <div class="form-row">
+                            <div>
+                                <label>Post</label>
+                                <select name="post">
+                                    <option>Indiranagar Sec-14</option>
+                                    <option>Aliganj</option>
+                                    <option>Gomti Nagar</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>District</label>
+                                <input type="text" name="district" value="Lucknow" readonly style="background-color: #f1f3f5;">
+                            </div>
+                        </div>
 
-        // Date Filter Mechanism Activation
-        function applyMasterDateFilter() {
-            let start = document.getElementById("masterStartDate").value;
-            let end = document.getElementById("masterEndDate").value;
-            if(!start || !end) { return alert("Kripya dono validation dates select karein!"); }
-            let filteredList = ordersDB.filter(o => o.date >= start && o.date <= end);
-            renderUIPanels(filteredList);
-        }
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label>State</label>
+                            <input type="text" name="state" value="Uttar Pradesh" readonly style="background-color: #f1f3f5;">
+                        </div>
 
-        function resetMasterDateFilter() {
-            document.getElementById("masterStartDate").value = "";
-            document.getElementById("masterEndDate").value = "";
-            renderUIPanels(ordersDB);
-        }
+                        <button type="submit" class="btn-primary" style="width: 100%; padding: 12px;">Submit New Order</button>
+                    </form>
+                </div>
+            </div>
 
-        // Excel Export Configurations
-        function exportSummaryExcel() {
-            let table = document.getElementById("summaryTable");
-            let wb = XLSX.utils.table_to_book(table, { sheet: "Performance Summary" });
-            XLSX.writeFile(wb, "Employee_Performance_Summary.xlsx");
-        }
+            <div class="right-column">
+                <div class="card" style="min-height: 560px;">
+                    <div class="card-title" style="color: #333;">Your Orders</div>
+                    
+                    <form method="GET" action="" class="filter-form">
+                        <div class="filter-group">
+                            <label>From Date</label>
+                            <input type="date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="filter-group">
+                            <label>To Date</label>
+                            <input type="date" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <button type="submit" class="btn-primary" style="padding: 8px 15px;">Filter</button>
+                        <a href="{% url 'dashboard' %}" style="padding: 8px 10px; color:#6c757d; font-size:13px; text-decoration:none;">Clear</a>
+                    </form>
 
-        function exportLogExcel() {
-            let table = document.getElementById("masterLogTable");
-            let wb = XLSX.utils.table_to_book(table, { sheet: "Order Logs" });
-            XLSX.writeFile(wb, "Master_Order_Logs.xlsx");
-        }
+                    <div class="table-responsive">
+                        <table class="order-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Customer Info</th>
+                                    <th>Items Ordered</th>
+                                    <th>Total</th>
+                                    <th>Status / Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.created_at|date:"d-m-Y" }}<br><span style="font-size:11px; color:#888;">{{ order.created_at|date:"H:i" }}</span></td>
+                                    
+                                    <td>
+                                        <strong>{{ order.customer_name }}</strong><br>
+                                        <span style="font-size: 12px; color: #555;">{{ order.customer_phone }}</span><br>
+                                        <span style="font-size: 11px; color:#777;">{{ order.district }}, {{ order.state }}</span>
+                                    </td>
+                                    
+                                    <td>{{ order.details|default:"Ayurvedic Medicine Pack" }}</td>
+                                    
+                                    <td>₹{{ order.total_amount|default:"0" }}</td>
+                                    
+                                    <td>
+                                        <span class="status-badge {% if order.status == 'Success' %}status-success{% else %}status-pending{% endif %}">
+                                            {{ order.status|default:"Pending" }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: #999; padding: 40px 10px;">
+                                        Aapne abhi tak koi order submit nahi kiya hai ya is date filter me koi data nahi hai.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-        function calculateMasterCounters(data) {
-            if(!isUserAdmin) return;
-            let totalOrders = data.length;
-            let totalBottles = 0;
-            let repeatCount = 0;
+                </div>
+            </div>
 
-            data.forEach(o => {
-                o.products.forEach(p => totalBottles += p.qty);
-                if(o.isRepeat) repeatCount++;
-            });
+        </div>
+    </div>
 
-            document.getElementById("totalOrdersCount").innerText = totalOrders;
-            document.getElementById("totalBottlesCount").innerText = totalBottles;
-            document.getElementById("totalRepeatCount").innerText = repeatCount;
-        }
-
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            let productsArr = [];
-            for(let i=1; i<=3; i++) {
-                let itemVal = document.getElementById(`prodSelect${i}`).value;
-                let qtyVal = parseInt(document.getElementById(`prodCount${i}`).value) || 0;
-                if(itemVal && qtyVal > 0) productsArr.push({ item: itemVal, qty: qtyVal });
-            }
-
-            let orderPayload = {
-                name: document.getElementById("custName").value,
-                phone: document.getElementById("custPhone").value,
-                phone2: document.getElementById("custPhone2").value,
-                address: document.getElementById("custAddress").value,
-                pincode: document.getElementById("custPincode").value,
-                post: document.getElementById("custPost").value,
-                tehsil: document.getElementById("custTehsil").value,
-                district: document.getElementById("custDistrict").value,
-                state: document.getElementById("custState").value,
-                product_1_name: productsArr[0] ? productsArr[0].item : "",
-                product_1_count: productsArr[0] ? productsArr[0].qty : 0,
-                product_2_name: productsArr[1] ? productsArr[1].item : "",
-                product_2_count: productsArr[1] ? productsArr[1].qty : 0,
-                product_3_name: productsArr[2] ? productsArr[2].item : "",
-                product_3_count: productsArr[2] ? productsArr[2].qty : 0,
-                grand_total: parseFloat(document.getElementById("grandTotalPrice").innerText),
-                is_repeat: document.getElementById("formIsRepeat").value === "true"
-            };
-
-            fetch('/api/save-order/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify(orderPayload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    alert(data.message);
-                    ordersDB.push({
-                        id: Date.now(), date: new Date().toISOString().split('T')[0], employee: "admin",
-                        name: orderPayload.name, phone: orderPayload.phone, phone2: orderPayload.phone2,
-                        address: orderPayload.address, post: orderPayload.post, tehsil: orderPayload.tehsil,
-                        district: orderPayload.district, state: orderPayload.state, pincode: orderPayload.pincode,
-                        products: productsArr, grand_total: orderPayload.grand_total, isRepeat: orderPayload.is_repeat, status: "pending"
-                    });
-                    cancelEditMode();
-                    renderUIPanels();
-                }
-            });
-        }
-
-        function editOrderLocal(id) {
-            let target = ordersDB.find(o => o.id === id);
-            if(!target) return;
-            if(target.status === 'generated') { return alert("Security Lock: Generated records elements edit nahi ho sakte!"); }
-            document.getElementById("custName").value = target.name;
-            document.getElementById("custPhone").value = target.phone;
-            document.getElementById("custPhone2").value = target.phone2;
-            document.getElementById("custAddress").value = target.address;
-            document.getElementById("custPincode").value = target.pincode;
-            document.getElementById("custTehsil").value = target.tehsil;
-            document.getElementById("custDistrict").value = target.district;
-            document.getElementById("custState").value = target.state;
-            document.getElementById("grandTotalPrice").innerText = target.grand_total;
-            document.getElementById("formEditId").value = target.id;
-            
-            document.getElementById("formTitle").innerText = "Modify Active Record";
-            document.getElementById("submitBtn").innerText = "Update Entry Details";
-            document.getElementById("cancelEditBtn").style.display = "block";
-        }
-
-        function checkPincode(pincode) {
-            if (pincode.length === 6) {
-                fetch(`https://api.postalpincode.in/pincode/${pincode}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data[0].Status === "Success") {
-                        const po = data[0].PostOffice;
-                        document.getElementById("custDistrict").value = po[0].District;
-                        document.getElementById("custState").value = po[0].State;
-                        const drop = document.getElementById("custPost");
-                        drop.innerHTML = '<option value="">-- Select Post Office --</option>';
-                        po.forEach(p => drop.innerHTML += `<option value="${p.Name}">${p.Name}</option>`);
-                    }
-                });
-            }
-        }
-
-        function clearPincodeFields() {
-            document.getElementById("custDistrict").value = "";
-            document.getElementById("custState").value = "";
-            document.getElementById("custPost").innerHTML = '<option value="">-- Enter Pincode First --</option>';
-        }
-
-        function switchView() {
-            let role = document.getElementById("roleSelector").value;
-            document.getElementById("employeeSection").style.display = role === 'employee' ? 'block' : 'none';
-            document.getElementById("masterSection").style.display = role === 'master' ? 'block' : 'none';
-        }
-
-        function checkPastCustomer() {
-            const phone = document.getElementById("empSearchPhone").value.trim();
-            const match = ordersDB.find(o => o.phone === phone || o.phone2 === phone);
-            if(match) {
-                temporaryFoundOrder = match;
-                document.getElementById("resName").innerText = match.name;
-                document.getElementById("resProd").innerText = `[${match.products.map(p=>p.item).join(', ')}]`;
-                document.getElementById("resAddr").innerText = match.address;
-                document.getElementById("searchResultArea").style.display = "block";
-            } else { alert("Koi purana customer nahi mila!"); }
-        }
-
-        function autoFillRepeatOrder() {
-            if(!temporaryFoundOrder) return;
-            document.getElementById("custName").value = temporaryFoundOrder.name;
-            document.getElementById("custPhone").value = temporaryFoundOrder.phone;
-            document.getElementById("custPhone2").value = temporaryFoundOrder.phone2;
-            document.getElementById("custAddress").value = temporaryFoundOrder.address;
-            document.getElementById("custPincode").value = temporaryFoundOrder.pincode;
-            document.getElementById("formIsRepeat").value = "true";
-            alert("Repeat Form Configured!");
-        }
-
-        function clearEmpSearch() {
-            document.getElementById("empSearchPhone").value = "";
-            document.getElementById("searchResultArea").style.display = "none";
-        }
-
-        function updateOrderStatus(id, status) {
-            if(!isUserAdmin) return;
-            let idx = ordersDB.findIndex(o => o.id === id);
-            if(idx !== -1) {
-                ordersDB[idx].status = ordersDB[idx].status === status ? 'pending' : status;
-                renderUIPanels();
-            }
-        }
-
-        // Pincode gap validation completely removed
-        function shareOrderOnWhatsApp(id) {
-            let o = ordersDB.find(o => o.id === id);
-            if(o) {
-                let itemsText = o.products.map(p => `• ${p.item} (x${p.qty})`).join('\n');
-                let message = `Customer Name: ${o.name}\n`;
-                message += `Phone: ${o.phone}, ${o.phone2}\n`;
-                message += `Address: ${o.address}\n`;
-                message += `Post: ${o.post}\n`;
-                message += `Tehsil: ${o.tehsil}\n`;
-                message += `District: ${o.district}\n`;
-                message += `State: ${o.state}\n`;
-                message += `Pincode: ${o.pincode}\n`; // Double newline \n\n removed to close the gap completely
-                message += `Items Summary:\n${itemsText}\n\n`;
-                message += `Grand Total Price: Rs. ${o.grand_total}\n`;
-                message += `-------------------------------------------\n`;
-                message += `Order Booked By: ${o.employee}`;
-
-                let encodedMessage = encodeURIComponent(message);
-                window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-            }
-        }
-
-        function cancelEditMode() {
-            document.getElementById("orderForm").reset();
-            document.getElementById("grandTotalPrice").innerText = "0";
-            document.getElementById("formEditId").value = "";
-            document.getElementById("formTitle").innerText = "New Order Form";
-            document.getElementById("submitBtn").innerText = "Submit Order";
-            document.getElementById("cancelEditBtn").style.display = "none";
-            clearPincodeFields();
-        }
-
-        window.onload = function() {
-            renderUIPanels();
-        };
-    </script>
 </body>
 </html>
