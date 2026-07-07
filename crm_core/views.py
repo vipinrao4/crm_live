@@ -9,14 +9,13 @@ from datetime import datetime
 @login_required
 def dashboard_view(request):
     user = request.user
-    # Aapke model ke hisab se exact '-date' filter use kiya hai
     orders = Order.objects.filter(employee=user).order_by('-date')
     
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     
     if start_date and end_date:
-        orders = orders.filter(date__date__range=[start_date, end_date])
+        orders = orders.filter(date__range=[start_date, end_date])
 
     context = {
         'orders': orders,
@@ -24,7 +23,6 @@ def dashboard_view(request):
         'end_date': end_date,
     }
     
-    # Fallback Mechanism: Agar templates root me ho ya app ke andar, dono check karega
     try:
         return render(request, 'dashboard.html', context)
     except Exception:
