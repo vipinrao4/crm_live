@@ -21,7 +21,8 @@ def dashboard_view(request):
         'start_date': start_date,
         'end_date': end_date,
     }
-    return render(request, 'dashboard.html', context)
+    # Yahan humne app name explicit jod diya
+    return render(request, 'crm_core/dashboard.html', context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -35,7 +36,8 @@ def login_view(request):
                 return redirect('dashboard')
     else:
         form = AuthenticationForm()
-    return render(request, 'login.html', {'form': form})
+    # Yahan bhi explicit app name jod diya
+    return render(request, 'crm_core/login.html', {'form': form})
 
 def logout_view(request):
     logout(request)
