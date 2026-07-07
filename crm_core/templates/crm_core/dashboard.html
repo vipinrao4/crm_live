@@ -5,218 +5,257 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Dashboard - Divjot CRM</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f6f9; color: #333; padding-bottom: 40px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding: 25px; }
         
-        /* Navbar Styling */
-        .navbar { background-color: #23272a; color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .navbar-brand { font-size: 20px; font-weight: bold; }
-        .navbar-brand span { font-size: 12px; color: #888; font-weight: normal; }
-        .navbar-right { display: flex; align-items: center; gap: 15px; }
-        .logout-btn { background-color: #dc3545; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 14px; font-weight: bold; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .badge-green { background-color: #28a745; color: white; padding: 4px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; }
         
-        /* Layout Structure */
-        .container { max-width: 1400px; margin: 25px auto; padding: 0 20px; }
-        .welcome-header { margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
-        .user-badge { background-color: #28a745; color: white; padding: 4px 10px; border-radius: 4px; font-size: 14px; }
+        .grid-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 25px; align-items: start; }
+        @media (max-width: 992px) { .grid-layout { grid-template-columns: 1fr; } }
         
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start; }
-        @media (max-width: 992px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        .panel { background: white; border: 1px solid #ced4da; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .panel-title { font-size: 16px; font-weight: bold; color: #0056b3; margin-bottom: 15px; }
         
-        /* Card Styling */
-        .card { background: white; border-radius: 8px; border: 1px solid #e1e4e8; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .card-title { font-size: 18px; color: #0056b3; margin-bottom: 15px; font-weight: 600; }
+        .search-box { border: 1px dashed #007bff; background-color: #f1f7ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .flex-row { display: flex; gap: 10px; }
+        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px; }
         
-        /* Form & Input Elements */
-        .search-box { border: 2px dashed #b4d3fe; background-color: #f1f7ff; }
-        .form-group-inline { display: flex; gap: 10px; margin-bottom: 15px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444; }
         input, select { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; }
-        input:focus, select:focus { border-color: #80bdff; outline: none; }
         
-        .btn-primary { background-color: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-search { background-color: #007bff; color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; }
-        .btn-clear { background-color: #e2e6ea; color: #333; border: 1px solid #ced4da; padding: 0 12px; border-radius: 4px; cursor: pointer; }
+        .product-box { background-color: #f8f9fa; border: 1px solid #e1e4e8; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+        .product-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
         
-        /* Date Filter Form */
-        .filter-form { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 15px; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; }
-        .filter-group { flex: 1; min-width: 120px; }
+        .total-strip { background-color: #23272a; color: white; padding: 12px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; border-radius: 4px; margin-top: 15px; margin-bottom: 15px; }
+        .btn-submit { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; }
         
-        /* Table Styling */
-        .table-responsive { width: 100%; overflow-x: auto; margin-top: 15px; }
-        .order-table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 14px; }
-        .order-table th { background-color: #f8f9fa; color: #555; font-weight: bold; text-align: left; padding: 10px; border-bottom: 2px solid #dee2e6; border-top: 1px solid #dee2e6; }
-        .order-table td { padding: 12px 10px; border-bottom: 1px solid #dee2e6; vertical-align: top; }
-        .order-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .sync-empty-box { background-color: #f8f9fa; border: 1px solid #eee; text-align: center; padding: 30px; color: #6c757d; border-radius: 6px; font-size: 14px; }
         
-        .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
-        .status-success { background-color: #d4edda; color: #155724; }
-        .status-pending { background-color: #fff3cd; color: #856404; }
+        .btn-blue { background-color: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-clear { background-color: white; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px; }
+        
+        .orders-list-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
+        .orders-list-table th { background: #f1f3f5; padding: 8px; border-bottom: 2px solid #ccc; font-weight: bold; }
+        .orders-list-table td { padding: 8px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-    <div class="navbar">
-        <div class="navbar-brand">Divjot CRM <span>(Production V25 - Final secured)</span></div>
-        <div class="navbar-right">
-            <span style="font-size: 14px; color: #ccc;">Role: <strong>Employee View</strong></span>
-            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+    <div class="header-bar">
+        <h2>Employee Dashboard</h2>
+        <div>
+            <span class="badge-green">Logged in: {{ request.user.username }}</span> | 
+            <a href="{% url 'logout' %}" style="color: #dc3545; font-weight: bold; text-decoration: none; font-size: 14px;">Logout</a>
         </div>
     </div>
 
-    <div class="container">
-        <div class="welcome-header">
-            <h2>Employee Dashboard</h2>
-            <span class="user-badge">Logged in: {{ request.user.username }}</span>
-        </div>
-
-        <div class="dashboard-grid">
-            
-            <div class="left-column">
-                
-                <div class="card search-box">
-                    <label style="color: #0056b3; font-weight: bold; margin-bottom: 8px;">Check Past Customer (Phone Number)</label>
-                    <div class="form-group-inline">
-                        <input type="text" placeholder="Enter phone 1 to check repeat...">
-                        <button class="btn-search">Search</button>
-                        <button class="btn-clear">X</button>
-                    </div>
+    <div class="grid-layout">
+        
+        <!-- LEFT AREA: FORMS & DATA SUBMISSION -->
+        <div>
+            <!-- Past customer tracker section -->
+            <div class="search-box">
+                <label style="color: #0056b3;">Check Past Customer (Phone Number)</label>
+                <div class="flex-row">
+                    <input type="text" id="cust_search_phone" placeholder="Enter phone 1 to check repeat...">
+                    <button class="btn-blue" onclick="checkPastCustomer()">Search</button>
+                    <button class="btn-clear" onclick="document.getElementById('cust_search_phone').value=''">X</button>
                 </div>
+                <div id="search_result_status" style="margin-top: 8px; font-size: 13px; font-weight: bold; color: #28a745;"></div>
+            </div>
 
-                <div class="card">
-                    <div class="card-title">New Order Form</div>
-                    <form method="POST" action="">
-                        {% csrf_token %}
-                        
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label>Name</label>
-                            <input type="text" name="name" placeholder="Sajara khatun">
+            <!-- Core Order Form -->
+            <div class="panel">
+                <div class="panel-title">New Order Form</div>
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label>Name</label>
+                        <input type="text" name="name" placeholder="Sajara khatun">
+                    </div>
+
+                    <div class="form-row-2">
+                        <div>
+                            <label>Phone Number 1</label>
+                            <input type="text" name="phone_1" id="main_phone" placeholder="Primary 10 digit" required>
                         </div>
-
-                        <div class="form-row">
-                            <div>
-                                <label>Phone Number 1 (10 Digits)*</label>
-                                <input type="text" name="phone_1" placeholder="e.g. 9876543210" required>
-                            </div>
-                            <div>
-                                <label>Phone Number 2 (10 Digits)*</label>
-                                <input type="text" name="phone_2" placeholder="e.g. 8877665544">
-                            </div>
+                        <div>
+                            <label>Phone Number 2 (Alternate)</label>
+                            <input type="text" name="phone_2" placeholder="Alternate number">
                         </div>
+                    </div>
 
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label>Address</label>
-                            <input type="text" name="address" placeholder="Vill / Street Name">
+                    <div style="margin-bottom: 12px;">
+                        <label>Address</label>
+                        <input type="text" name="address" placeholder="Vill / Street Name">
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label>Pincode (6 digits)*</label>
+                        <input type="text" name="pincode" value="226016" required>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div>
+                            <label>Post</label>
+                            <select name="post">
+                                <option>-- Enter Pincode First --</option>
+                                <option selected>Indiranagar Sec-14</option>
+                                <option>Aliganj</option>
+                            </select>
                         </div>
-
-                        <div class="form-row">
-                            <div>
-                                <label>Pincode (6 digits)* <span style="float:right; font-weight:normal; color:#666;">Fetching...</span></label>
-                                <input type="text" name="pincode" value="226016" required>
-                            </div>
-                            <div>
-                                <label>Tehsil</label>
-                                <input type="text" name="tehsil" placeholder="Enter Tehsil manually">
-                            </div>
+                        <div>
+                            <label>Tehsil</label>
+                            <input type="text" name="tehsil" placeholder="Enter Tehsil manually">
                         </div>
+                    </div>
 
-                        <div class="form-row">
+                    <div class="form-row-2">
+                        <div>
+                            <label>District</label>
+                            <input type="text" name="district" value="Lucknow" readonly style="background:#e9ecef;">
+                        </div>
+                        <div>
+                            <label>State</label>
+                            <input type="text" name="state" value="Uttar Pradesh" readonly style="background:#e9ecef;">
+                        </div>
+                    </div>
+
+                    <!-- Multiple dynamic items inputs up to 3 products -->
+                    <label style="margin-top: 15px; color:#23272a;">Product Details (Fill up to 3 products)</label>
+                    
+                    <div class="product-box">
+                        <div class="product-grid">
                             <div>
-                                <label>Post</label>
-                                <select name="post">
-                                    <option>Indiranagar Sec-14</option>
-                                    <option>Aliganj</option>
-                                    <option>Gomti Nagar</option>
+                                <label>Product 1</label>
+                                <select name="product_1" id="p1_select">
+                                    <option value="Ayurvedic Medicine Pack A">Ayurvedic Medicine Pack A</option>
+                                    <option value="Premium Saffron Oil">Premium Saffron Oil</option>
                                 </select>
                             </div>
                             <div>
-                                <label>District</label>
-                                <input type="text" name="district" value="Lucknow" readonly style="background-color: #f1f3f5;">
+                                <label>Count</label>
+                                <input type="number" name="product_1_count" id="p1_count" value="1" min="1" oninput="calculateTotal()">
                             </div>
-                        </div>
-
-                        <div class="form-row">
                             <div>
-                                <label>State</label>
-                                <input type="text" name="state" value="Uttar Pradesh" readonly style="background-color: #f1f3f5;">
+                                <label>Price (₹)</label>
+                                <input type="number" name="product_1_price" id="p1_price" value="1200" oninput="calculateTotal()">
                             </div>
                         </div>
-
-                        <button type="submit" class="btn-primary" style="width: 100%; padding: 12px;">Submit New Order</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="right-column">
-                <div class="card" style="min-height: 560px;">
-                    <div class="card-title" style="color: #333;">Your Orders</div>
-                    
-                    <form method="GET" action="" class="filter-form">
-                        <div class="filter-group">
-                            <label>From Date</label>
-                            <input type="date" name="start_date" value="{{ start_date }}">
-                        </div>
-                        <div class="filter-group">
-                            <label>To Date</label>
-                            <input type="date" name="end_date" value="{{ end_date }}">
-                        </div>
-                        <button type="submit" class="btn-primary" style="padding: 8px 15px;">Filter</button>
-                        <a href="{% url 'dashboard' %}" style="padding: 8px 10px; color:#6c757d; font-size:13px; text-decoration:none;">Clear</a>
-                    </form>
-
-                    <div class="table-responsive">
-                        <table class="order-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Customer Info</th>
-                                    <th>Items Ordered</th>
-                                    <th>Total</th>
-                                    <th>Status / Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in orders %}
-                                <tr>
-                                    <td>{{ order.formatted_date }}</td>
-                                    
-                                    <td>
-                                        <strong>{{ order.customer_name }}</strong><br>
-                                        <span style="font-size: 12px; color: #555;">{{ order.phone_1 }}</span><br>
-                                        <span style="font-size: 11px; color:#777;">{{ order.district }}, {{ order.state }}</span>
-                                    </td>
-                                    
-                                    <td>
-                                        {% if order.product_1_name %}{{ order.product_1_name }} (x{{ order.product_1_count }}){% endif %}
-                                        {% if order.product_2_name %}<br>{{ order.product_2_name }} (x{{ order.product_2_count }}){% endif %}
-                                        {% if order.product_3_name %}<br>{{ order.product_3_name }} (x{{ order.product_3_count }}){% endif %}
-                                    </td>
-                                    
-                                    <td>₹{{ order.grand_total|default:"0" }}</td>
-                                    
-                                    <td>
-                                        <span class="status-badge {% if order.status == 'Success' %}status-success{% else %}status-pending{% endif %}">
-                                            {{ order.status|default:"Pending" }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" style="text-align: center; color: #999; padding: 40px 10px;">
-                                        Aapne abhi tak koi order submit nahi kiya hai ya is date filter me koi data nahi hai.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
                     </div>
 
-                </div>
-            </div>
+                    <div class="product-box">
+                        <div class="product-grid">
+                            <div>
+                                <label>Product 2 (Optional)</label>
+                                <select name="product_2">
+                                    <option value="">-- None --</option>
+                                    <option value="Churna Mega Pack">Churna Mega Pack</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Count</label>
+                                <input type="number" name="product_2_count" id="p2_count" value="0" min="0" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label>Price (₹)</label>
+                                <input type="number" name="product_2_price" id="p2_price" value="0" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                    </div>
 
+                    <div class="product-box">
+                        <div class="product-grid">
+                            <div>
+                                <label>Product 3 (Optional)</label>
+                                <select name="product_3">
+                                    <option value="">-- None --</option>
+                                    <option value="Capsule Pack B">Capsule Pack B</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Count</label>
+                                <input type="number" name="product_3_count" id="p3_count" value="0" min="0" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label>Price (₹)</label>
+                                <input type="number" name="product_3_price" id="p3_price" value="0" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grand Total Banner -->
+                    <div class="total-strip">
+                        <span>Grand Total Price:</span>
+                        <span id="grand_total_display">₹1200</span>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Submit Order</button>
+                </form>
+            </div>
         </div>
+
+        <!-- RIGHT AREA: SYNC VIEW RECORD HISTORY -->
+        <div class="panel">
+            <div class="panel-title" style="color: #444;">Your Sync View</div>
+            <div class="sync-empty-box">
+                Backend records are managed inside Master Control.
+            </div>
+            
+            <table class="orders-list-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ord in emp_orders_list %}
+                    <tr>
+                        <td>{{ ord.date }}</td>
+                        <td><strong>{{ ord.customer_name }}</strong><br>{{ ord.phone_1 }}</td>
+                        <td>{{ ord.items }}</td>
+                        <td>₹{{ ord.grand_total }}</td>
+                        <td><span style="color:#f39c12; font-weight:bold;">{{ ord.status }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #aaa; padding: 20px 0;">No logs submitted today.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
     </div>
 
+    <!-- Live calculation engine script matching UI criteria -->
+    <script>
+        function calculateTotal() {
+            let p1c = parseInt(document.getElementById('p1_count').value) || 0;
+            let p1p = parseFloat(document.getElementById('p1_price').value) || 0;
+            let p2c = parseInt(document.getElementById('p2_count').value) || 0;
+            let p2p = parseFloat(document.getElementById('p2_price').value) || 0;
+            let p3c = parseInt(document.getElementById('p3_count').value) || 0;
+            let p3p = parseFloat(document.getElementById('p3_price').value) || 0;
+            
+            let total = (p1c * p1p) + (p2c * p2p) + (p3c * p3p);
+            document.getElementById('grand_total_display').innerText = '₹' + total;
+        }
+        
+        function checkPastCustomer() {
+            let phone = document.getElementById('cust_search_phone').value;
+            if(!phone) { alert('Please enter phone number'); return; }
+            document.getElementById('search_result_status').innerText = 'Checking background logs for repeat matching...';
+        }
+        
+        // Initial build trigger
+        calculateTotal();
+    </script>
 </body>
 </html>
