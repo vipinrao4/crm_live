@@ -1,10 +1,11 @@
 import os
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_get_content
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.http import JsonResponse
 from .models import Order  
 from datetime import datetime
 
@@ -12,13 +13,24 @@ from datetime import datetime
 def dashboard(request):
     user = request.user
     
+    # AJAX Status Update Handler (Green/Red Action Buttons ke liye)
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'POST':
+        order_id = request.POST.get('order_id')
+        new_status = request.POST.get('status')
+        try:
+            order_obj = Order.objects.get(id=order_id)
+            order_obj.status = new_status
+            order_obj.save()
+            return JsonResponse({'status': 'success'})
+        except Order.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Order not found'})
+
     # -----------------------------------------------------------------
-    # ROUTE 1: MASTER ADMIN CONTROL (Agar Admin ya Staff login kare)
+    # ROUTE 1: MASTER ADMIN CONTROL (Admin View)
     # -----------------------------------------------------------------
     if user.is_staff or user.is_superuser:
         raw_orders = Order.objects.all().order_by('-date')
         
-        # Filters parameters
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         search_phone = request.GET.get('search_phone')
@@ -29,7 +41,6 @@ def dashboard(request):
         if search_phone:
             raw_orders = raw_orders.filter(Q(phone_1__icontains=search_phone) | Q(phone_2__icontains=search_phone))
             
-        # Top Stats Cards Calculation
         total_orders_count = raw_orders.count()
         total_products_sold = 0
         repeat_orders_count = 0
@@ -39,7 +50,6 @@ def dashboard(request):
             if getattr(o, 'is_repeat', False):
                 repeat_orders_count += 1
                 
-        # Employee Performance Summary Calculation
         employees = User.objects.filter(is_staff=False)
         emp_summary = []
         for emp in employees:
@@ -51,32 +61,55 @@ def dashboard(request):
                 if getattr(eo, 'is_repeat', False):
                     emp_repeat_count += 1
             
+            new_orders_units = emp_orders.count() - emp_repeat_count
+            
             emp_summary.append({
                 'username': emp.username,
-                'new_orders_units': emp_orders.count() - emp_repeat_count,
+                'new_orders_units': new_orders_units if new_orders_units > 0 else 0,
                 'repeat_orders_units': emp_repeat_count,
                 'total_products_sold': emp_p_count,
-                'ads_spent': 0.0,
-                'avg_cost': 0.0,
             })
             
-        # Master Log Mapping
         master_orders_log = []
         for o in raw_orders:
-            items_desc = f"{o.product_1_name or ''} (x{o.product_1_count or 0})"
-            if o.product_2_name:
-                items_desc += f", {o.product_2_name} (x{o.product_2_count or 0})"
-            if o.product_3_name:
-                items_desc += f", {o.product_3_name} (x{o.product_3_count or 0})"
-                
+            items_list = []
+            if o.product_1_name and (o.product_1_count or 0) > 0:
+                items_list.append(f"* {o.product_1_name} (x{o.product_1_count})")
+            if o.product_2_name and (o.product_2_count or 0) > 0:
+                items_list.append(f"* {o.product_2_name} (x{o.product_2_count})")
+            if o.product_3_name and (o.product_3_count or 0) > 0:
+                items_list.append(f"* {o.product_3_name} (x{o.product_3_count})")
+            
+            items_desc = ", ".join([i.replace("* ", "") for i in items_list])
+            whatsapp_items = "\n".join(items_list)
+            
+            # Pure Dynamic WhatsApp Format Setup
+            wa_text = (
+                f"Customer Name: {o.customer_name}\n"
+                f"Phone: {o.phone_1 or ''}{', ' + o.phone_2 if o.phone_2 else ''}\n"
+                f"Address: {o.address or ''}\n"
+                f"Post: {o.post_office or ''}\n"
+                f"Tehsil: {o.tehsil or ''}\n"
+                f"District: {o.district or ''}\n"
+                f"State: {o.state or ''}\n"
+                f"Pincode: {o.pincode or ''}\n"
+                f"Items Summary:\n{whatsapp_items}\n\n"
+                f"Grand Total Price: Rs. {int(o.grand_total or 0)}\n"
+                f"-------------------------------------------\n"
+                f"Order Booked By: {o.employee.username if o.employee else 'Admin'}"
+            )
+            
             master_orders_log.append({
+                'id': o.id,
                 'date': o.date.strftime("%d-%m-%Y") if o.date else "",
                 'emp': o.employee.username if o.employee else "System",
                 'customer_info': f"{o.customer_name} | {o.phone_1}",
                 'full_address': f"{o.address or ''}, {o.tehsil or ''}, {o.district or ''}, {o.state or ''} - {o.pincode or ''}",
                 'items_summary': items_desc,
-                'grand_total': o.grand_total or 0,
+                'grand_total': int(o.grand_total or 0),
                 'status': o.status or "Pending",
+                'whatsapp_text': wa_text,
+                'primary_phone': o.phone_1,
             })
             
         context = {
@@ -89,14 +122,13 @@ def dashboard(request):
             'end_date': end_date,
             'search_phone': search_phone or '',
         }
-        
         try:
             return render(request, 'admin_control.html', context)
         except Exception:
             return render(request, 'crm_core/admin_control.html', context)
 
     # -----------------------------------------------------------------
-    # ROUTE 2: EMPLOYEE PORTAL (Normal user ke liye)
+    # ROUTE 2: EMPLOYEE PORTAL
     # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
@@ -148,8 +180,14 @@ def dashboard(request):
         )
         return redirect('dashboard')
 
-    # Employee ka data load karne ka logic
+    # Employee View Filters
     raw_emp_orders = Order.objects.filter(employee=user).order_by('-date')
+    emp_start_date = request.GET.get('emp_start_date')
+    emp_end_date = request.GET.get('emp_end_date')
+    
+    if emp_start_date and emp_end_date:
+        raw_emp_orders = raw_emp_orders.filter(date__range=[emp_start_date, emp_end_date])
+
     emp_orders_list = []
     for o in raw_emp_orders:
         emp_orders_list.append({
@@ -157,14 +195,20 @@ def dashboard(request):
             'customer_name': o.customer_name,
             'phone_1': o.phone_1,
             'items': f"{o.product_1_name or ''} ({o.product_1_count or 0})",
-            'grand_total': o.grand_total or 0,
+            'grand_total': int(o.grand_total or 0),
             'status': o.status or "Pending"
         })
 
+    context = {
+        'emp_orders_list': emp_orders_list,
+        'emp_start_date': emp_start_date or '',
+        'emp_end_date': emp_end_date or '',
+    }
+
     try:
-        return render(request, 'dashboard.html', {'emp_orders_list': emp_orders_list})
+        return render(request, 'dashboard.html', context)
     except Exception:
-        return render(request, 'crm_core/dashboard.html', {'emp_orders_list': emp_orders_list})
+        return render(request, 'crm_core/dashboard.html', context)
 
 def login_view(request):
     if request.method == 'POST':

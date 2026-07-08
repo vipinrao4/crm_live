@@ -30,14 +30,14 @@
         .total-strip { background-color: #23272a; color: white; padding: 12px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; border-radius: 4px; margin-top: 15px; margin-bottom: 15px; }
         .btn-submit { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; }
         
-        .sync-empty-box { background-color: #f8f9fa; border: 1px solid #eee; text-align: center; padding: 30px; color: #6c757d; border-radius: 6px; font-size: 14px; }
-        
-        .btn-blue { background-color: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
-        .btn-clear { background-color: white; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px; }
-        
         .orders-list-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
         .orders-list-table th { background: #f1f3f5; padding: 8px; border-bottom: 2px solid #ccc; font-weight: bold; }
         .orders-list-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        
+        .status-pill { padding: 3px 6px; border-radius: 4px; font-weight: bold; }
+        .pill-generated { background-color: #d4edda; color: #155724; }
+        .pill-cancel { background-color: #f8d7da; color: #721c24; }
+        .pill-pending { background-color: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
@@ -52,20 +52,15 @@
 
     <div class="grid-layout">
         
-        <!-- LEFT AREA: FORMS & DATA SUBMISSION -->
         <div>
-            <!-- Past customer tracker section -->
             <div class="search-box">
                 <label style="color: #0056b3;">Check Past Customer (Phone Number)</label>
                 <div class="flex-row">
                     <input type="text" id="cust_search_phone" placeholder="Enter phone 1 to check repeat...">
-                    <button class="btn-blue" onclick="checkPastCustomer()">Search</button>
-                    <button class="btn-clear" onclick="document.getElementById('cust_search_phone').value=''">X</button>
+                    <button class="btn-blue" style="background:#007bff; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Search</button>
                 </div>
-                <div id="search_result_status" style="margin-top: 8px; font-size: 13px; font-weight: bold; color: #28a745;"></div>
             </div>
 
-            <!-- Core Order Form -->
             <div class="panel">
                 <div class="panel-title">New Order Form</div>
                 <form method="POST" action="">
@@ -79,11 +74,11 @@
                     <div class="form-row-2">
                         <div>
                             <label>Phone Number 1</label>
-                            <input type="text" name="phone_1" id="main_phone" placeholder="Primary 10 digit" required>
+                            <input type="text" name="phone_1" required>
                         </div>
                         <div>
                             <label>Phone Number 2 (Alternate)</label>
-                            <input type="text" name="phone_2" placeholder="Alternate number">
+                            <input type="text" name="phone_2">
                         </div>
                     </div>
 
@@ -101,7 +96,6 @@
                         <div>
                             <label>Post</label>
                             <select name="post">
-                                <option>-- Enter Pincode First --</option>
                                 <option selected>Indiranagar Sec-14</option>
                                 <option>Aliganj</option>
                             </select>
@@ -123,16 +117,15 @@
                         </div>
                     </div>
 
-                    <!-- Multiple dynamic items inputs up to 3 products -->
-                    <label style="margin-top: 15px; color:#23272a;">Product Details (Fill up to 3 products)</label>
+                    <label style="margin-top: 15px;">Product Details (Fill up to 3 products)</label>
                     
                     <div class="product-box">
                         <div class="product-grid">
                             <div>
                                 <label>Product 1</label>
-                                <select name="product_1" id="p1_select">
-                                    <option value="Ayurvedic Medicine Pack A">Ayurvedic Medicine Pack A</option>
-                                    <option value="Premium Saffron Oil">Premium Saffron Oil</option>
+                                <select name="product_1">
+                                    <option value="Asthakesri">Asthakesri</option>
+                                    <option value="Gastro">Gastro</option>
                                 </select>
                             </div>
                             <div>
@@ -141,7 +134,7 @@
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_1_price" id="p1_price" value="1200" oninput="calculateTotal()">
+                                <input type="number" name="product_1_price" id="p1_price" value="1300" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
@@ -152,7 +145,7 @@
                                 <label>Product 2 (Optional)</label>
                                 <select name="product_2">
                                     <option value="">-- None --</option>
-                                    <option value="Churna Mega Pack">Churna Mega Pack</option>
+                                    <option value="Gastro">Gastro</option>
                                 </select>
                             </div>
                             <div>
@@ -172,7 +165,7 @@
                                 <label>Product 3 (Optional)</label>
                                 <select name="product_3">
                                     <option value="">-- None --</option>
-                                    <option value="Capsule Pack B">Capsule Pack B</option>
+                                    <option value="Asthakesri">Asthakesri</option>
                                 </select>
                             </div>
                             <div>
@@ -186,10 +179,9 @@
                         </div>
                     </div>
 
-                    <!-- Grand Total Banner -->
                     <div class="total-strip">
                         <span>Grand Total Price:</span>
-                        <span id="grand_total_display">₹1200</span>
+                        <span id="grand_total_display">₹1300</span>
                     </div>
 
                     <button type="submit" class="btn-submit">Submit Order</button>
@@ -197,12 +189,15 @@
             </div>
         </div>
 
-        <!-- RIGHT AREA: SYNC VIEW RECORD HISTORY -->
         <div class="panel">
             <div class="panel-title" style="color: #444;">Your Sync View</div>
-            <div class="sync-empty-box">
-                Backend records are managed inside Master Control.
-            </div>
+            
+            <form method="GET" action="" style="display: flex; gap: 8px; margin-bottom: 15px; align-items: center; background: #fafafa; padding: 8px; border-radius: 4px; border: 1px solid #eee;">
+                <input type="date" name="emp_start_date" value="{{ emp_start_date }}" style="padding: 4px;">
+                <input type="date" name="emp_end_date" value="{{ emp_end_date }}" style="padding: 4px;">
+                <button type="submit" style="background: #24292e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Filter</button>
+                <a href="{% url 'dashboard' %}" style="font-size: 12px; color: #666; text-decoration: none;">Clear</a>
+            </form>
             
             <table class="orders-list-table">
                 <thead>
@@ -221,11 +216,15 @@
                         <td><strong>{{ ord.customer_name }}</strong><br>{{ ord.phone_1 }}</td>
                         <td>{{ ord.items }}</td>
                         <td>₹{{ ord.grand_total }}</td>
-                        <td><span style="color:#f39c12; font-weight:bold;">{{ ord.status }}</span></td>
+                        <td>
+                            <span class="status-pill {% if ord.status == 'Generated' %}pill-generated{% elif ord.status == 'Cancel' %}pill-cancel{% else %}pill-pending{% endif %}">
+                                {{ ord.status }}
+                            </span>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="text-align: center; color: #aaa; padding: 20px 0;">No logs submitted today.</td>
+                        <td colspan="5" style="text-align: center; color: #aaa; padding: 20px 0;">No logs found for selection.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -234,7 +233,6 @@
 
     </div>
 
-    <!-- Live calculation engine script matching UI criteria -->
     <script>
         function calculateTotal() {
             let p1c = parseInt(document.getElementById('p1_count').value) || 0;
@@ -247,14 +245,6 @@
             let total = (p1c * p1p) + (p2c * p2p) + (p3c * p3p);
             document.getElementById('grand_total_display').innerText = '₹' + total;
         }
-        
-        function checkPastCustomer() {
-            let phone = document.getElementById('cust_search_phone').value;
-            if(!phone) { alert('Please enter phone number'); return; }
-            document.getElementById('search_result_status').innerText = 'Checking background logs for repeat matching...';
-        }
-        
-        // Initial build trigger
         calculateTotal();
     </script>
 </body>
