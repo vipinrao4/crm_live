@@ -131,11 +131,8 @@ def dashboard(request):
     # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
-        
-        # Strictly slice backend input strings to 10 characters maximum
         phone_1 = (request.POST.get('phone_1') or '').replace(" ", "")[:10]
         phone_2 = (request.POST.get('phone_2') or '').replace(" ", "")[:10]
-        
         address = request.POST.get('address')
         pincode = request.POST.get('pincode')
         tehsil = request.POST.get('tehsil')
@@ -158,7 +155,7 @@ def dashboard(request):
         grand_total = (p1_count * p1_price) + (p2_count * p2_price) + (p3_count * p3_price)
         is_customer_repeat = Order.objects.filter(phone_1=phone_1).exists()
 
-        if phone_1: # Zero safety bypass validation
+        if phone_1:
             Order.objects.create(
                 employee=user,
                 customer_name=customer_name,
@@ -181,55 +178,3 @@ def dashboard(request):
                 date=datetime.now().date(),
                 status='Pending'
             )
-        return redirect('dashboard')
-
-    # Employee View Fetch
-    raw_emp_orders = Order.objects.filter(employee=user).order_by('-date')
-    emp_start_date = request.GET.get('emp_start_date')
-    emp_end_date = request.GET.get('emp_end_date')
-    
-    if emp_start_date and emp_end_date:
-        raw_emp_orders = raw_emp_orders.filter(date__range=[emp_start_date, emp_end_date])
-
-    emp_orders_list = []
-    for o in raw_emp_orders:
-        emp_orders_list.append({
-            'date': o.date.strftime("%d-%m-%Y") if o.date else "",
-            'customer_name': o.customer_name,
-            'phone_1': o.phone_1,
-            'items': f"{o.product_1_name or ''} ({o.product_1_count or 0})",
-            'grand_total': int(o.grand_total or 0),
-            'status': o.status or "Pending"
-        })
-
-    context = {
-        'emp_orders_list': emp_orders_list,
-        'emp_start_date': emp_start_date or '',
-        'emp_end_date': emp_end_date or '',
-    }
-
-    try:
-        return render(request, 'dashboard.html', context)
-    except Exception:
-        return render(request, 'crm_core/dashboard.html', context)
-
-def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect('dashboard')
-    else:
-        form = AuthenticationForm()
-    try:
-        return render(request, 'login.html', {'form': form})
-    except Exception:
-        return render(request, 'crm_core/login.html', {'form': form})
-
-def logout_view(request):
-    logout(request)
-    return redirect('login')
