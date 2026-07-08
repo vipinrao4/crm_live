@@ -41,6 +41,7 @@
         
         .edit-link { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; margin-top: 4px; }
         .pincode-status { font-size: 11px; color: #666; margin-top: 4px; display: block; }
+        .repeat-alert { background-color: #fff3cd; color: #856404; padding: 8px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; font-weight: bold; display: none; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
@@ -55,15 +56,15 @@
 
     <div class="grid-layout">
         
-        <!-- LEFT: FORM DATA -->
         <div>
             {% if not is_edit_mode %}
             <div class="search-box">
                 <label style="color: #0056b3;">Check Past Customer (Phone Number)</label>
                 <div class="flex-row">
-                    <input type="text" id="cust_search_phone" maxlength="10" placeholder="Enter phone 1 to check repeat..." oninput="validatePhoneInput(this)">
-                    <button class="btn-blue" style="background:#007bff; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Search</button>
+                    <input type="text" id="cust_search_phone" maxlength="10" placeholder="Enter phone to check repeat..." oninput="validatePhoneInput(this)">
+                    <button type="button" class="btn-blue" onclick="searchRepeatCustomer()" style="background:#007bff; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">Search</button>
                 </div>
+                <span id="search_status_msg" style="font-size:12px; display:block; margin-top:5px; font-weight:bold;"></span>
             </div>
             {% endif %}
 
@@ -72,12 +73,16 @@
                     {% if is_edit_mode %} ⚠️ Editing Order ID: #{{ order.id }} <a href="{% url 'dashboard' %}" style="float:right; font-size:12px; color:#666;">Cancel Edit</a> {% else %} New Order Form {% endif %}
                 </div>
                 
+                <div id="repeat_banner" class="repeat-alert">⚠️ REPEAT CUSTOMER DETECTED! This order will be submitted as a Repeat Order.</div>
+
                 <form method="POST" action="{% if is_edit_mode %}{% url 'edit_order' order.id %}{% else %}{% url 'dashboard' %}{% endif %}">
                     {% csrf_token %}
                     
+                    <input type="hidden" name="order_type" id="order_type_hidden" value="{% if is_edit_mode %}{{ order.order_type }}{% else %}New{% endif %}">
+
                     <div style="margin-bottom: 12px;">
                         <label>Name</label>
-                        <input type="text" name="name" value="{% if is_edit_mode %}{{ order.customer_name }}{% endif %}" placeholder="Sajara khatun">
+                        <input type="text" name="name" id="name_input" value="{% if is_edit_mode %}{{ order.customer_name }}{% endif %}" placeholder="Sajara khatun">
                     </div>
 
                     <div class="form-row-2">
@@ -93,7 +98,7 @@
 
                     <div style="margin-bottom: 12px;">
                         <label>Address</label>
-                        <input type="text" name="address" value="{% if is_edit_mode %}{{ order.address }}{% endif %}" placeholder="Vill / Street Name">
+                        <input type="text" name="address" id="address_input" value="{% if is_edit_mode %}{{ order.address }}{% endif %}" placeholder="Vill / Street Name">
                     </div>
 
                     <div style="margin-bottom: 12px;">
@@ -218,7 +223,6 @@
             </div>
         </div>
 
-        <!-- RIGHT: SYNC VIEW -->
         <div class="panel">
             <div class="panel-title" style="color: #444;">Your Sync View</div>
             
@@ -245,7 +249,11 @@
                     {% for ord in emp_orders_list %}
                     <tr>
                         <td>{{ ord.date }}</td>
-                        <td><strong>{{ ord.customer_name }}</strong><br>{{ ord.phone_1 }}</td>
+                        <td><strong>{{ ord.customer_name }}</strong><br>{{ ord.phone_1 }}<br>
+                            {% if ord.order_type == "Repeat" %}
+                                <span style="background:#fff3cd; color:#856404; font-size:10px; padding:2px 4px; border-radius:3px; font-weight:bold;">🔁 Repeat</span>
+                            {% endif %}
+                        </td>
                         <td>{{ ord.items }}</td>
                         <td>₹{{ ord.grand_total }}</td>
                         <td>
@@ -276,9 +284,62 @@
             }
         }
 
+        // REPEAT CUSTOMER RECOGNITION AND FETCH ENGINE
+        function searchRepeatCustomer() {
+            let phoneInput = document.getElementById('cust_search_phone').value;
+            let msg = document.getElementById('search_status_msg');
+            let banner = document.getElementById('repeat_banner');
+            let hiddenType = document.getElementById('order_type_hidden');
+
+            if (phoneInput.length !== 10) {
+                msg.innerText = "⚠️ Please enter a valid 10-digit number.";
+                msg.style.color = "#dc3545";
+                return;
+            }
+
+            msg.innerText = "🔍 Searching customer history...";
+            msg.style.color = "#007bff";
+
+            // Django standard admin search endpoint helper
+            fetch(`?search_phone_ajax=${phoneInput}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.found === true) {
+                        // Fields me purana data auto fill karein
+                        document.getElementById('name_input').value = data.name;
+                        document.getElementById('phone_1_input').value = data.phone_1;
+                        document.getElementById('phone_2_input').value = data.phone_2 || "";
+                        document.getElementById('address_input').value = data.address;
+                        document.getElementById('pincode_input').value = data.pincode;
+                        document.getElementById('district_input').value = data.district;
+                        document.getElementById('state_input').value = data.state;
+                        document.getElementById('tehsil_input').value = data.tehsil || "";
+
+                        // Pincode dropdown custom configuration
+                        let postSelect = document.getElementById('post_select');
+                        postSelect.innerHTML = `<option value="${data.post_office}" selected>${data.post_office}</option>`;
+
+                        // System indicators lock rules for submission
+                        banner.style.display = "block";
+                        hiddenType.value = "Repeat";
+
+                        msg.innerText = "✅ Old customer found! Profile autofilled as Repeat.";
+                        msg.style.color = "#28a745";
+                    } else {
+                        banner.style.display = "none";
+                        hiddenType.value = "New";
+                        msg.innerText = "🆕 No record found. This is a brand new customer profile!";
+                        msg.style.color = "#17a2b8";
+                    }
+                })
+                .catch(err => {
+                    msg.innerText = "⚠️ Error connecting to server lookup engine.";
+                    msg.style.color = "#ffc107";
+                });
+        }
+
         // GOVERNMENT PINCODE API FETCH ENGINE
         function fetchPincodeData(pincode) {
-            // Sirf tabhi check karega jab poore 6 digit type ho chuke hon
             if (pincode.length === 6) {
                 let loader = document.getElementById('pincode_loader');
                 let postSelect = document.getElementById('post_select');
@@ -294,11 +355,8 @@
                     .then(data => {
                         if (data[0].Status === "Success") {
                             let postOffices = data[0].PostOffice;
-                            
-                            // Pure dropdown list ko pehle khali karein
                             postSelect.innerHTML = "";
                             
-                            // Saare Post offices ko dropdown list me jodein
                             postOffices.forEach(office => {
                                 let opt = document.createElement('option');
                                 opt.value = office.Name;
@@ -306,7 +364,6 @@
                                 postSelect.appendChild(opt);
                             });
 
-                            // District, State aur Tehsil (Block) automatic fill karein
                             districtInput.value = postOffices[0].District;
                             stateInput.value = postOffices[0].State;
                             if(postOffices[0].Block && postOffices[0].Block !== "NA") {
