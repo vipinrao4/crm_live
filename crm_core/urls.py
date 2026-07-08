@@ -1,7 +1,6 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),            # Yeh aapka admin dashboard ka raasta hai
-    path('', include('crm_core.urls')),       # Yeh employee portal ko connect karega
+    path('', views.dashboard, name='dashboard'),
 ]
