@@ -202,7 +202,7 @@ def dashboard(request):
             'phone_1': o.phone_1,
             'items': f"{o.product_1_name or ''} ({o.product_1_count or 0})",
             'grand_total': get_clean_int_price(o.grand_total),
-            'status': o.status or "Pending"
+            'status': o.status if o.status else "Pending"  # Strict check for status value mapping
         })
 
     context = {
@@ -218,12 +218,12 @@ def dashboard(request):
         return render(request, 'crm_core/dashboard.html', context)
 
 
-# FIXED: TRY-EXCEPT FALLBACK PATH INTEGRATION IN EDIT VIEW TO KILL YELLOW SCREENS
 @login_required
 def edit_order_view(request, order_id):
     order_obj = get_object_or_404(Order, id=order_id, employee=request.user)
     
-    if order_obj.status != 'Pending':
+    # Validation block for lockdown edit security
+    if order_obj.status and order_obj.status != 'Pending':
         return redirect('dashboard')
         
     if request.method == 'POST':
@@ -262,7 +262,6 @@ def edit_order_view(request, order_id):
         'is_edit_mode': True
     }
     
-    # Yellow page khatam karne ke liye strict multiple rasta search logic
     try:
         return render(request, 'dashboard.html', context)
     except Exception:
