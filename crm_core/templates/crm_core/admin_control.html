@@ -156,7 +156,7 @@
                     <td>
                         <button class="btn-mini btn-mini-green" id="btn-gen-{{ log.id }}" data-current-status="{{ log.status }}" onclick="toggleGenerateStatus('{{ log.id }}')">Generated</button>
                         <button class="btn-mini btn-mini-red" onclick="updateOrderStatus('{{ log.id }}', 'Cancel')">Cancel</button>
-                        <a class="btn-mini btn-mini-wa" href="https://api.whatsapp.com/send?phone=91{{ log.primary_phone }}&text={{ log.whatsapp_text|urlencode }}" target="_blank">WhatsApp</a>
+                        <a class="btn-mini btn-mini-wa" href="https://api.whatsapp.com/send?text={{ log.whatsapp_text|urlencode }}" target="_blank">WhatsApp</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -175,13 +175,11 @@
             document.getElementById('avg-cost-display-' + index).innerText = '₹' + avgCost.toFixed(2);
         }
 
-        // FIXED: TOGGLER ENGINE TO ROLLBACK GENERATED TO PENDING ON DOUBLE CLICK STATE
         function toggleGenerateStatus(orderId) {
-            let btn = document.getElementById('btn-gen-{{ log.id }}' ? document.getElementById('btn-gen-' + orderId) : null) || document.getElementById('btn-gen-' + orderId);
+            let btn = document.getElementById('btn-gen-' + orderId);
             let currentStatus = btn.getAttribute('data-current-status');
             let targetStatus = 'Generated';
             
-            // Agar pehle se Generated hai, toh click karne par wapas Pending banayega
             if (currentStatus === 'Generated') {
                 targetStatus = 'Pending';
             }
@@ -206,7 +204,6 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // Update state variables inside frontend components
                     btn.setAttribute('data-current-status', targetStatus);
                     
                     if(targetStatus === 'Generated') {
@@ -214,7 +211,7 @@
                     } else if(targetStatus === 'Cancel') {
                         row.className = 'row-cancel';
                     } else {
-                        row.className = 'row-pending'; // Back to white/normal background
+                        row.className = 'row-pending';
                     }
                 } else {
                     alert('Error updating status');
