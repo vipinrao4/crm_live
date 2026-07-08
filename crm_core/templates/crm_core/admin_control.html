@@ -102,9 +102,9 @@
 
     <div class="bulk-action-bar">
         <div>
-            <strong id="selected-count">0 Orders Selected</strong> for bulk forwarding.
+            <strong id="selected-count">0 Orders Selected</strong> for individual forwarding.
         </div>
-        <button class="bulk-btn" onclick="sendBulkToWhatsApp()">➔ Send Selected to WhatsApp</button>
+        <button class="bulk-btn" onclick="sendMultipleTabsToWhatsApp()">➔ Send Selected as Separate Messages</button>
     </div>
 
     <div class="section-card">
@@ -204,24 +204,26 @@
             document.getElementById('selected-count').innerText = checkedBoxes.length + " Orders Selected";
         }
 
-        function sendBulkToWhatsApp() {
+        // MULTIPLE SEPARATE TEXT MESSAGES LOOP LOGIC
+        function sendMultipleTabsToWhatsApp() {
             let checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
             if (checkedBoxes.length === 0) {
                 alert("Please select at least one order first!");
                 return;
             }
 
-            let combinedText = "📦 *DIVJOT ENTERPRISES - BULK ORDERS LIST* 📦\n\n";
-            combinedText += "=============================\n\n";
+            // Ek baar confirmation le lete hain kyunki zyada tabs khulenge
+            if(checkedBoxes.length > 10) {
+                let proceed = confirm(`Aapne ${checkedBoxes.length} orders select kiye hain. Kya aap ek sath itne saare WhatsApp tabs open karna chahte hain?`);
+                if(!proceed) return;
+            }
 
-            checkedBoxes.forEach((box, index) => {
+            // Loop chalakar har ek order ka alag tab kholenge
+            checkedBoxes.forEach(box => {
                 let orderText = box.getAttribute('data-text');
-                combinedText += `*Order #${index + 1}*\n${orderText}\n`;
-                combinedText += "-----------------------------\n\n";
+                let finalUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(orderText);
+                window.open(finalUrl, '_blank');
             });
-
-            let finalUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(combinedText);
-            window.open(finalUrl, '_blank');
         }
 
         function toggleGenerateStatus(orderId) {
