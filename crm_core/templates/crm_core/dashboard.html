@@ -160,7 +160,7 @@
                                     <option value="immunity Bosster" {% if is_edit_mode and order.product_2_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
                                     <option value="Gastro Syrup" {% if is_edit_mode and order.product_2_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
                                     <option value="Pain Tablet" {% if is_edit_mode and order.product_2_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
-                                    <option value="Pain Oil" {% if is_edit_mode remission and order.product_2_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_2_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
                                     <option value="Onion Oil" {% if is_edit_mode and order.product_2_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
                                 </select>
                             </div>
@@ -306,7 +306,6 @@
             document.getElementById('grand_total_display').innerText = '₹' + total;
         }
 
-        // FIXED: AUTOMATIC LIVE CORRECTION ENGINE ON LOADING AN EXISTING RECORD
         {% if is_edit_mode %}
             window.onload = function() {
                 updatePrice('1');
