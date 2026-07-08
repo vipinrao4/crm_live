@@ -37,15 +37,14 @@
         .crm-table th { background-color: #f6f8fa; padding: 12px; border-bottom: 2px solid #e1e4e8; color: #24292e; font-weight: bold; }
         .crm-table td { padding: 12px; border-bottom: 1px solid #e1e4e8; }
         
-        /* Action Mini Buttons Layout */
         .btn-mini { padding: 4px 8px; font-size: 11px; font-weight: bold; border: none; border-radius: 3px; cursor: pointer; margin-right: 4px; color: white; text-decoration: none;}
         .btn-mini-green { background-color: #28a745; }
         .btn-mini-red { background-color: #dc3545; }
         .btn-mini-wa { background-color: #25d366; }
         
-        /* Dynamic Row States color filters */
         .row-generated { background-color: #d4edda !important; }
         .row-cancel { background-color: #f8d7da !important; }
+        .row-pending { background-color: #ffffff !important; }
         
         .ads-input-field { width: 90px; padding: 5px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #ccc;}
         .logout-bar { text-align: right; margin-bottom: 10px; font-size: 14px;}
@@ -147,7 +146,7 @@
             </thead>
             <tbody>
                 {% for log in master_orders_log %}
-                <tr id="order-row-{{ log.id }}" class="{% if log.status == 'Generated' %}row-generated{% elif log.status == 'Cancel' %}row-cancel{% endif %}">
+                <tr id="order-row-{{ log.id }}" class="{% if log.status == 'Generated' %}row-generated{% elif log.status == 'Cancel' %}row-cancel{% else %}row-pending{% endif %}">
                     <td>{{ log.date }}</td>
                     <td><span class="badge-all" style="background-color: #6c757d;">{{ log.emp }}</span></td>
                     <td>{{ log.customer_info }}</td>
@@ -155,7 +154,7 @@
                     <td>{{ log.items_summary }}</td>
                     <td><strong>₹{{ log.grand_total }}</strong></td>
                     <td>
-                        <button class="btn-mini btn-mini-green" onclick="updateOrderStatus('{{ log.id }}', 'Generated')">Generated</button>
+                        <button class="btn-mini btn-mini-green" id="btn-gen-{{ log.id }}" data-current-status="{{ log.status }}" onclick="toggleGenerateStatus('{{ log.id }}')">Generated</button>
                         <button class="btn-mini btn-mini-red" onclick="updateOrderStatus('{{ log.id }}', 'Cancel')">Cancel</button>
                         <a class="btn-mini btn-mini-wa" href="https://api.whatsapp.com/send?phone=91{{ log.primary_phone }}&text={{ log.whatsapp_text|urlencode }}" target="_blank">WhatsApp</a>
                     </td>
@@ -176,10 +175,24 @@
             document.getElementById('avg-cost-display-' + index).innerText = '₹' + avgCost.toFixed(2);
         }
 
+        // FIXED: TOGGLER ENGINE TO ROLLBACK GENERATED TO PENDING ON DOUBLE CLICK STATE
+        function toggleGenerateStatus(orderId) {
+            let btn = document.getElementById('btn-gen-{{ log.id }}' ? document.getElementById('btn-gen-' + orderId) : null) || document.getElementById('btn-gen-' + orderId);
+            let currentStatus = btn.getAttribute('data-current-status');
+            let targetStatus = 'Generated';
+            
+            // Agar pehle se Generated hai, toh click karne par wapas Pending banayega
+            if (currentStatus === 'Generated') {
+                targetStatus = 'Pending';
+            }
+            
+            updateOrderStatus(orderId, targetStatus);
+        }
+
         function updateOrderStatus(orderId, targetStatus) {
             let row = document.getElementById('order-row-' + orderId);
+            let btn = document.getElementById('btn-gen-' + orderId);
             
-            // Native AJAX to protect real-time execution flows without page refreshes
             let formData = new FormData();
             formData.append('order_id', orderId);
             formData.append('status', targetStatus);
@@ -193,10 +206,15 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
+                    // Update state variables inside frontend components
+                    btn.setAttribute('data-current-status', targetStatus);
+                    
                     if(targetStatus === 'Generated') {
                         row.className = 'row-generated';
                     } else if(targetStatus === 'Cancel') {
                         row.className = 'row-cancel';
+                    } else {
+                        row.className = 'row-pending'; // Back to white/normal background
                     }
                 } else {
                     alert('Error updating status');

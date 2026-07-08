@@ -9,7 +9,6 @@ from django.http import JsonResponse
 from .models import Order  
 from datetime import datetime
 
-# CLEAN CUSTOM INTEGER FILTER SUB-FUNCTION FOR PRICING
 def get_clean_int_price(value):
     try:
         return int(float(value or 0))
@@ -20,7 +19,7 @@ def get_clean_int_price(value):
 def dashboard(request):
     user = request.user
     
-    # AJAX Status Update Handler (Admin Live Actions Control Engine)
+    # AJAX Status Update Handler
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'POST':
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
@@ -33,7 +32,7 @@ def dashboard(request):
             return JsonResponse({'status': 'error', 'message': 'Order not found'})
 
     # -----------------------------------------------------------------
-    # ROUTE 1: MASTER ADMIN CONTROL (Admin Logins Control View)
+    # ROUTE 1: MASTER ADMIN CONTROL
     # -----------------------------------------------------------------
     if user.is_staff or user.is_superuser:
         raw_orders = Order.objects.all().order_by('-date')
@@ -134,7 +133,7 @@ def dashboard(request):
             return render(request, 'crm_core/admin_control.html', context)
 
     # -----------------------------------------------------------------
-    # ROUTE 2: EMPLOYEE PORTAL (Normal Employee View Portal)
+    # ROUTE 2: EMPLOYEE PORTAL
     # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
@@ -219,7 +218,7 @@ def dashboard(request):
         return render(request, 'crm_core/dashboard.html', context)
 
 
-# STRICT SECURED CONDITIONAL EDIT RE-ROUTE VIEW FOR EMPLOYEES
+# FIXED: TRY-EXCEPT FALLBACK PATH INTEGRATION IN EDIT VIEW TO KILL YELLOW SCREENS
 @login_required
 def edit_order_view(request, order_id):
     order_obj = get_object_or_404(Order, id=order_id, employee=request.user)
@@ -255,7 +254,6 @@ def edit_order_view(request, order_id):
         order_obj.save()
         return redirect('dashboard')
         
-    # Backend mapping data configuration contexts
     context = {
         'order': order_obj,
         'p1_p': get_clean_int_price(order_obj.product_1_price),
@@ -263,13 +261,14 @@ def edit_order_view(request, order_id):
         'p3_p': get_clean_int_price(order_obj.product_3_price),
         'is_edit_mode': True
     }
+    
+    # Yellow page khatam karne ke liye strict multiple rasta search logic
     try:
         return render(request, 'dashboard.html', context)
     except Exception:
         return render(request, 'crm_core/dashboard.html', context)
 
 
-# STRICT RESCUE LOGIN ENGINE BLOCK CONTROLLERS
 def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
