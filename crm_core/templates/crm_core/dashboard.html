@@ -40,6 +40,7 @@
         .pill-pending { background-color: #fff3cd; color: #856404; }
         
         .edit-link { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; margin-top: 4px; }
+        .pincode-status { font-size: 11px; color: #666; margin-top: 4px; display: block; }
     </style>
 </head>
 <body>
@@ -54,6 +55,7 @@
 
     <div class="grid-layout">
         
+        <!-- LEFT: FORM DATA -->
         <div>
             {% if not is_edit_mode %}
             <div class="search-box">
@@ -96,31 +98,35 @@
 
                     <div style="margin-bottom: 12px;">
                         <label>Pincode (6 digits)*</label>
-                        <input type="text" name="pincode" value="{% if is_edit_mode %}{{ order.pincode }}{% else %}226016{% endif %}" required>
+                        <input type="text" name="pincode" id="pincode_input" value="{% if is_edit_mode %}{{ order.pincode }}{% endif %}" maxlength="6" required placeholder="e.g. 226016" oninput="fetchPincodeData(this.value)">
+                        <span id="pincode_loader" class="pincode-status"></span>
                     </div>
 
                     <div class="form-row-2">
                         <div>
-                            <label>Post</label>
-                            <select name="post">
-                                <option {% if is_edit_mode and order.post_office == 'Indiranagar Sec-14' %}selected{% endif %}>Indiranagar Sec-14</option>
-                                <option {% if is_edit_mode and order.post_office == 'Aliganj' %}selected{% endif %}>Aliganj</option>
+                            <label>Post Office</label>
+                            <select name="post" id="post_select">
+                                {% if is_edit_mode and order.post_office %}
+                                    <option value="{{ order.post_office }}" selected>{{ order.post_office }}</option>
+                                {% else %}
+                                    <option value="">-- Type Pincode First --</option>
+                                {% endif %}
                             </select>
                         </div>
                         <div>
                             <label>Tehsil</label>
-                            <input type="text" name="tehsil" value="{% if is_edit_mode %}{{ order.tehsil }}{% endif %}" placeholder="Enter Tehsil manually">
+                            <input type="text" name="tehsil" id="tehsil_input" value="{% if is_edit_mode %}{{ order.tehsil }}{% endif %}" placeholder="Automatic or manual entry">
                         </div>
                     </div>
 
                     <div class="form-row-2">
                         <div>
                             <label>District</label>
-                            <input type="text" name="district" value="Lucknow" readonly style="background:#e9ecef;">
+                            <input type="text" name="district" id="district_input" value="{% if is_edit_mode %}{{ order.district }}{% endif %}" readonly style="background:#e9ecef;">
                         </div>
                         <div>
                             <label>State</label>
-                            <input type="text" name="state" value="Uttar Pradesh" readonly style="background:#e9ecef;">
+                            <input type="text" name="state" id="state_input" value="{% if is_edit_mode %}{{ order.state }}{% endif %}" readonly style="background:#e9ecef;">
                         </div>
                     </div>
 
@@ -212,6 +218,7 @@
             </div>
         </div>
 
+        <!-- RIGHT: SYNC VIEW -->
         <div class="panel">
             <div class="panel-title" style="color: #444;">Your Sync View</div>
             
@@ -266,6 +273,57 @@
             input.value = input.value.replace(/[^0-9]/g, '');
             if (input.value.length > 10) {
                 input.value = input.value.slice(0, 10);
+            }
+        }
+
+        // GOVERNMENT PINCODE API FETCH ENGINE
+        function fetchPincodeData(pincode) {
+            // Sirf tabhi check karega jab poore 6 digit type ho chuke hon
+            if (pincode.length === 6) {
+                let loader = document.getElementById('pincode_loader');
+                let postSelect = document.getElementById('post_select');
+                let districtInput = document.getElementById('district_input');
+                let stateInput = document.getElementById('state_input');
+                let tehsilInput = document.getElementById('tehsil_input');
+
+                loader.innerText = "🔍 Fetching location data...";
+                loader.style.color = "#007bff";
+
+                fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data[0].Status === "Success") {
+                            let postOffices = data[0].PostOffice;
+                            
+                            // Pure dropdown list ko pehle khali karein
+                            postSelect.innerHTML = "";
+                            
+                            // Saare Post offices ko dropdown list me jodein
+                            postOffices.forEach(office => {
+                                let opt = document.createElement('option');
+                                opt.value = office.Name;
+                                opt.innerText = office.Name;
+                                postSelect.appendChild(opt);
+                            });
+
+                            // District, State aur Tehsil (Block) automatic fill karein
+                            districtInput.value = postOffices[0].District;
+                            stateInput.value = postOffices[0].State;
+                            if(postOffices[0].Block && postOffices[0].Block !== "NA") {
+                                tehsilInput.value = postOffices[0].Block;
+                            }
+
+                            loader.innerText = "✅ Location found successfully!";
+                            loader.style.color = "#28a745";
+                        } else {
+                            loader.innerText = "❌ Invalid Pincode! Not found.";
+                            loader.style.color = "#dc3545";
+                        }
+                    })
+                    .catch(err => {
+                        loader.innerText = "⚠️ Network error fetching data.";
+                        loader.style.color = "#ffc107";
+                    });
             }
         }
 
