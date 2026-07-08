@@ -48,6 +48,10 @@
         
         .ads-input-field { width: 90px; padding: 5px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #ccc;}
         .logout-bar { text-align: right; margin-bottom: 10px; font-size: 14px;}
+        
+        /* Bulk Action Bar Styling */
+        .bulk-action-bar { background-color: #e1f5fe; border: 1px solid #b3e5fc; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .bulk-btn { background-color: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -96,6 +100,13 @@
         </div>
     </div>
 
+    <div class="bulk-action-bar">
+        <div>
+            <strong id="selected-count">0 Orders Selected</strong> for bulk forwarding.
+        </div>
+        <button class="bulk-btn" onclick="sendBulkToWhatsApp()">➔ Send Selected to WhatsApp</button>
+    </div>
+
     <div class="section-card">
         <div class="section-header">
             <div class="section-title">Employee Performance Summary</div>
@@ -135,6 +146,7 @@
         <table class="crm-table">
             <thead>
                 <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="select-all-box" onclick="toggleSelectAll(this)"></th>
                     <th>Date</th>
                     <th>Emp</th>
                     <th>Customer & Contacts</th>
@@ -147,6 +159,9 @@
             <tbody>
                 {% for log in master_orders_log %}
                 <tr id="order-row-{{ log.id }}" class="{% if log.status == 'Generated' %}row-generated{% elif log.status == 'Cancel' %}row-cancel{% else %}row-pending{% endif %}">
+                    <td>
+                        <input type="checkbox" class="order-checkbox" data-text="{{ log.whatsapp_text }}" onclick="updateSelectedCount()">
+                    </td>
                     <td>{{ log.date }}</td>
                     <td><span class="badge-all" style="background-color: #6c757d;">{{ log.emp }}</span></td>
                     <td>{{ log.customer_info }}</td>
@@ -173,6 +188,40 @@
                 avgCost = adsSpent / newOrders;
             }
             document.getElementById('avg-cost-display-' + index).innerText = '₹' + avgCost.toFixed(2);
+        }
+
+        // BULK SELECTION LOGIC
+        function toggleSelectAll(masterBox) {
+            let checkboxes = document.querySelectorAll('.order-checkbox');
+            checkboxes.forEach(box => {
+                box.checked = masterBox.checked;
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            let checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+            document.getElementById('selected-count').innerText = checkedBoxes.length + " Orders Selected";
+        }
+
+        function sendBulkToWhatsApp() {
+            let checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert("Please select at least one order first!");
+                return;
+            }
+
+            let combinedText = "📦 *DIVJOT ENTERPRISES - BULK ORDERS LIST* 📦\n\n";
+            combinedText += "=============================\n\n";
+
+            checkedBoxes.forEach((box, index) => {
+                let orderText = box.getAttribute('data-text');
+                combinedText += `*Order #${index + 1}*\n${orderText}\n`;
+                combinedText += "-----------------------------\n\n";
+            });
+
+            let finalUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(combinedText);
+            window.open(finalUrl, '_blank');
         }
 
         function toggleGenerateStatus(orderId) {
