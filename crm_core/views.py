@@ -13,7 +13,7 @@ from datetime import datetime
 def dashboard(request):
     user = request.user
     
-    # AJAX Status Update Handler (Generated/Cancel buttons ke liye)
+    # AJAX Status Update Handler
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'POST':
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
@@ -26,7 +26,7 @@ def dashboard(request):
             return JsonResponse({'status': 'error', 'message': 'Order not found'})
 
     # -----------------------------------------------------------------
-    # ROUTE 1: MASTER ADMIN CONTROL (Admin ya Superuser View)
+    # ROUTE 1: MASTER ADMIN CONTROL
     # -----------------------------------------------------------------
     if user.is_staff or user.is_superuser:
         raw_orders = Order.objects.all().order_by('-date')
@@ -83,7 +83,6 @@ def dashboard(request):
             items_desc = ", ".join([i.replace("* ", "") for i in items_list])
             whatsapp_items = "\n".join(items_list)
             
-            # WhatsApp Format Mapping
             wa_text = (
                 f"Customer Name: {o.customer_name}\n"
                 f"Phone: {o.phone_1 or ''}{', ' + o.phone_2 if o.phone_2 else ''}\n"
@@ -128,12 +127,15 @@ def dashboard(request):
             return render(request, 'crm_core/admin_control.html', context)
 
     # -----------------------------------------------------------------
-    # ROUTE 2: EMPLOYEE PORTAL (Normal Employee View)
+    # ROUTE 2: EMPLOYEE PORTAL
     # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
-        phone_1 = request.POST.get('phone_1')
-        phone_2 = request.POST.get('phone_2')
+        
+        # Strictly slice backend input strings to 10 characters maximum
+        phone_1 = (request.POST.get('phone_1') or '').replace(" ", "")[:10]
+        phone_2 = (request.POST.get('phone_2') or '').replace(" ", "")[:10]
+        
         address = request.POST.get('address')
         pincode = request.POST.get('pincode')
         tehsil = request.POST.get('tehsil')
@@ -156,31 +158,32 @@ def dashboard(request):
         grand_total = (p1_count * p1_price) + (p2_count * p2_price) + (p3_count * p3_price)
         is_customer_repeat = Order.objects.filter(phone_1=phone_1).exists()
 
-        Order.objects.create(
-            employee=user,
-            customer_name=customer_name,
-            phone_1=phone_1,
-            phone_2=phone_2,
-            address=address,
-            pincode=pincode,
-            tehsil=tehsil,
-            post_office=post_office,
-            district=district,
-            state=state,
-            product_1_name=p1_name,
-            product_1_count=p1_count,
-            product_2_name=p2_name,
-            product_2_count=p2_count,
-            product_3_name=p3_name,
-            product_3_count=p3_count,
-            grand_total=grand_total,
-            is_repeat=is_customer_repeat,
-            date=datetime.now().date(),
-            status='Pending'
-        )
+        if phone_1: # Zero safety bypass validation
+            Order.objects.create(
+                employee=user,
+                customer_name=customer_name,
+                phone_1=phone_1,
+                phone_2=phone_2,
+                address=address,
+                pincode=pincode,
+                tehsil=tehsil,
+                post_office=post_office,
+                district=district,
+                state=state,
+                product_1_name=p1_name,
+                product_1_count=p1_count,
+                product_2_name=p2_name,
+                product_2_count=p2_count,
+                product_3_name=p3_name,
+                product_3_count=p3_count,
+                grand_total=grand_total,
+                is_repeat=is_customer_repeat,
+                date=datetime.now().date(),
+                status='Pending'
+            )
         return redirect('dashboard')
 
-    # Employee Filters
+    # Employee View Fetch
     raw_emp_orders = Order.objects.filter(employee=user).order_by('-date')
     emp_start_date = request.GET.get('emp_start_date')
     emp_end_date = request.GET.get('emp_end_date')

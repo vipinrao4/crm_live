@@ -52,11 +52,12 @@
 
     <div class="grid-layout">
         
+        <!-- LEFT: FORM DATA -->
         <div>
             <div class="search-box">
                 <label style="color: #0056b3;">Check Past Customer (Phone Number)</label>
                 <div class="flex-row">
-                    <input type="text" id="cust_search_phone" placeholder="Enter phone 1 to check repeat...">
+                    <input type="text" id="cust_search_phone" maxlength="10" placeholder="Enter phone 1 to check repeat..." oninput="validatePhoneInput(this)">
                     <button class="btn-blue" style="background:#007bff; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Search</button>
                 </div>
             </div>
@@ -73,12 +74,12 @@
 
                     <div class="form-row-2">
                         <div>
-                            <label>Phone Number 1</label>
-                            <input type="text" name="phone_1" required>
+                            <label>Phone Number 1 (10 Digits)*</label>
+                            <input type="text" name="phone_1" id="phone_1_input" maxlength="10" pattern="[0-9]{10}" placeholder="Primary 10 digit" required oninput="validatePhoneInput(this)">
                         </div>
                         <div>
                             <label>Phone Number 2 (Alternate)</label>
-                            <input type="text" name="phone_2">
+                            <input type="text" name="phone_2" id="phone_2_input" maxlength="10" pattern="[0-9]{10}" placeholder="Alternate 10 digit" oninput="validatePhoneInput(this)">
                         </div>
                     </div>
 
@@ -123,9 +124,13 @@
                         <div class="product-grid">
                             <div>
                                 <label>Product 1</label>
-                                <select name="product_1">
+                                <select name="product_1" id="p1_select" onchange="updatePrice('1')">
                                     <option value="Asthakesri">Asthakesri</option>
-                                    <option value="Gastro">Gastro</option>
+                                    <option value="immunity Bosster">immunity Bosster</option>
+                                    <option value="Gastro Syrup">Gastro Syrup</option>
+                                    <option value="Pain Tablet">Pain Tablet</option>
+                                    <option value="Pain Oil">Pain Oil</option>
+                                    <option value="Onion Oil">Onion Oil</option>
                                 </select>
                             </div>
                             <div>
@@ -143,9 +148,14 @@
                         <div class="product-grid">
                             <div>
                                 <label>Product 2 (Optional)</label>
-                                <select name="product_2">
+                                <select name="product_2" id="p2_select" onchange="updatePrice('2')">
                                     <option value="">-- None --</option>
-                                    <option value="Gastro">Gastro</option>
+                                    <option value="Asthakesri">Asthakesri</option>
+                                    <option value="immunity Bosster">immunity Bosster</option>
+                                    <option value="Gastro Syrup">Gastro Syrup</option>
+                                    <option value="Pain Tablet">Pain Tablet</option>
+                                    <option value="Pain Oil">Pain Oil</option>
+                                    <option value="Onion Oil">Onion Oil</option>
                                 </select>
                             </div>
                             <div>
@@ -163,9 +173,14 @@
                         <div class="product-grid">
                             <div>
                                 <label>Product 3 (Optional)</label>
-                                <select name="product_3">
+                                <select name="product_3" id="p3_select" onchange="updatePrice('3')">
                                     <option value="">-- None --</option>
                                     <option value="Asthakesri">Asthakesri</option>
+                                    <option value="immunity Bosster">immunity Bosster</option>
+                                    <option value="Gastro Syrup">Gastro Syrup</option>
+                                    <option value="Pain Tablet">Pain Tablet</option>
+                                    <option value="Pain Oil">Pain Oil</option>
+                                    <option value="Onion Oil">Onion Oil</option>
                                 </select>
                             </div>
                             <div>
@@ -189,6 +204,7 @@
             </div>
         </div>
 
+        <!-- RIGHT: SYNC VIEW -->
         <div class="panel">
             <div class="panel-title" style="color: #444;">Your Sync View</div>
             
@@ -234,6 +250,39 @@
     </div>
 
     <script>
+        // Force fully strict numeric constraint logic
+        function validatePhoneInput(input) {
+            input.value = input.value.replace(/[^0-9]/g, ''); // Numbers ke alawa sab mita dega
+            if (input.value.length > 10) {
+                input.value = input.value.slice(0, 10); // 10 digit se aage kat dega
+            }
+        }
+
+        const priceMap = {
+            "Asthakesri": 1300,
+            "immunity Bosster": 1000,
+            "Gastro Syrup": 450,
+            "Pain Tablet": 300,
+            "Pain Oil": 250,
+            "Onion Oil": 400,
+            "": 0
+        };
+
+        function updatePrice(id) {
+            let selectedProduct = document.getElementById('p' + id + '_select').value;
+            let priceInput = document.getElementById('p' + id + '_price');
+            let countInput = document.getElementById('p' + id + '_count');
+            
+            priceInput.value = priceMap[selectedProduct] || 0;
+            
+            if (selectedProduct !== "" && countInput.value == 0) {
+                countInput.value = 1;
+            } else if (selectedProduct === "") {
+                countInput.value = 0;
+            }
+            calculateTotal();
+        }
+
         function calculateTotal() {
             let p1c = parseInt(document.getElementById('p1_count').value) || 0;
             let p1p = parseFloat(document.getElementById('p1_price').value) || 0;
