@@ -28,16 +28,19 @@
         .product-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
         
         .total-strip { background-color: #23272a; color: white; padding: 12px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; border-radius: 4px; margin-top: 15px; margin-bottom: 15px; }
-        .btn-submit { background-color: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; }
+        .btn-submit { color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: bold; font-size: 15px; cursor: pointer; }
         
         .orders-list-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
         .orders-list-table th { background: #f1f3f5; padding: 8px; border-bottom: 2px solid #ccc; font-weight: bold; }
         .orders-list-table td { padding: 8px; border-bottom: 1px solid #eee; }
         
-        .status-pill { padding: 3px 6px; border-radius: 4px; font-weight: bold; }
+        .status-pill { padding: 3px 6px; border-radius: 4px; font-weight: bold; display: inline-block; margin-bottom: 4px; }
         .pill-generated { background-color: #d4edda; color: #155724; }
         .pill-cancel { background-color: #f8d7da; color: #721c24; }
         .pill-pending { background-color: #fff3cd; color: #856404; }
+        
+        .edit-link { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px; }
+        .edit-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -52,8 +55,8 @@
 
     <div class="grid-layout">
         
-        <!-- LEFT: FORM DATA -->
         <div>
+            {% if not is_edit_mode %}
             <div class="search-box">
                 <label style="color: #0056b3;">Check Past Customer (Phone Number)</label>
                 <div class="flex-row">
@@ -61,49 +64,53 @@
                     <button class="btn-blue" style="background:#007bff; color:white; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Search</button>
                 </div>
             </div>
+            {% endif %}
 
             <div class="panel">
-                <div class="panel-title">New Order Form</div>
-                <form method="POST" action="">
+                <div class="panel-title" style="color: {% if is_edit_mode %}#e67e22{% else %}#0056b3{% endif %};">
+                    {% if is_edit_mode %} ⚠️ Editing Order ID: #{{ order.id }} <a href="{% url 'dashboard' %}" style="float:right; font-size:12px; color:#666;">Cancel Edit</a> {% else %} New Order Form {% endif %}
+                </div>
+                
+                <form method="POST" action="{% if is_edit_mode %}{% url 'edit_order' order.id %}{% else %}{% url 'dashboard' %}{% endif %}">
                     {% csrf_token %}
                     
                     <div style="margin-bottom: 12px;">
                         <label>Name</label>
-                        <input type="text" name="name" placeholder="Sajara khatun">
+                        <input type="text" name="name" value="{% if is_edit_mode %}{{ order.customer_name }}{% endif %}" placeholder="Sajara khatun">
                     </div>
 
                     <div class="form-row-2">
                         <div>
                             <label>Phone Number 1 (10 Digits)*</label>
-                            <input type="text" name="phone_1" id="phone_1_input" maxlength="10" pattern="[0-9]{10}" placeholder="Primary 10 digit" required oninput="validatePhoneInput(this)">
+                            <input type="text" name="phone_1" id="phone_1_input" value="{% if is_edit_mode %}{{ order.phone_1 }}{% endif %}" maxlength="10" pattern="[0-9]{10}" placeholder="Primary 10 digit" required oninput="validatePhoneInput(this)">
                         </div>
                         <div>
                             <label>Phone Number 2 (Alternate)</label>
-                            <input type="text" name="phone_2" id="phone_2_input" maxlength="10" pattern="[0-9]{10}" placeholder="Alternate 10 digit" oninput="validatePhoneInput(this)">
+                            <input type="text" name="phone_2" id="phone_2_input" value="{% if is_edit_mode %}{{ order.phone_2|default:'' }}{% endif %}" maxlength="10" pattern="[0-9]{10}" placeholder="Alternate 10 digit" oninput="validatePhoneInput(this)">
                         </div>
                     </div>
 
                     <div style="margin-bottom: 12px;">
                         <label>Address</label>
-                        <input type="text" name="address" placeholder="Vill / Street Name">
+                        <input type="text" name="address" value="{% if is_edit_mode %}{{ order.address|default:'' }}{% endif %}" placeholder="Vill / Street Name">
                     </div>
 
                     <div style="margin-bottom: 12px;">
                         <label>Pincode (6 digits)*</label>
-                        <input type="text" name="pincode" value="226016" required>
+                        <input type="text" name="pincode" value="{% if is_edit_mode %}{{ order.pincode }}{% else %}226016{% endif %}" required>
                     </div>
 
                     <div class="form-row-2">
                         <div>
                             <label>Post</label>
                             <select name="post">
-                                <option selected>Indiranagar Sec-14</option>
-                                <option>Aliganj</option>
+                                <option {% if is_edit_mode and order.post_office == 'Indiranagar Sec-14' %}selected{% endif %}>Indiranagar Sec-14</option>
+                                <option {% if is_edit_mode and order.post_office == 'Aliganj' %}selected{% endif %}>Aliganj</option>
                             </select>
                         </div>
                         <div>
                             <label>Tehsil</label>
-                            <input type="text" name="tehsil" placeholder="Enter Tehsil manually">
+                            <input type="text" name="tehsil" value="{% if is_edit_mode %}{{ order.tehsil|default:'' }}{% endif %}" placeholder="Enter Tehsil manually">
                         </div>
                     </div>
 
@@ -118,28 +125,28 @@
                         </div>
                     </div>
 
-                    <label style="margin-top: 15px;">Product Details (Fill up to 3 products)</label>
+                    <label style="margin-top: 15px;">Product Details</label>
                     
                     <div class="product-box">
                         <div class="product-grid">
                             <div>
                                 <label>Product 1</label>
                                 <select name="product_1" id="p1_select" onchange="updatePrice('1')">
-                                    <option value="Asthakesri">Asthakesri</option>
-                                    <option value="immunity Bosster">immunity Bosster</option>
-                                    <option value="Gastro Syrup">Gastro Syrup</option>
-                                    <option value="Pain Tablet">Pain Tablet</option>
-                                    <option value="Pain Oil">Pain Oil</option>
-                                    <option value="Onion Oil">Onion Oil</option>
+                                    <option value="Asthakesri" {% if is_edit_mode and order.product_1_name == 'Asthakesri' %}selected{% endif %}>Asthakesri</option>
+                                    <option value="immunity Bosster" {% if is_edit_mode and order.product_1_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
+                                    <option value="Gastro Syrup" {% if is_edit_mode and order.product_1_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
+                                    <option value="Pain Tablet" {% if is_edit_mode and order.product_1_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_1_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Onion Oil" {% if is_edit_mode and order.product_1_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
                                 </select>
                             </div>
                             <div>
                                 <label>Count</label>
-                                <input type="number" name="product_1_count" id="p1_count" value="1" min="1" oninput="calculateTotal()">
+                                <input type="number" name="product_1_count" id="p1_count" value="{% if is_edit_mode %}{{ order.product_1_count }}{% else %}1{% endif %}" min="1" oninput="calculateTotal()">
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_1_price" id="p1_price" value="1300" oninput="calculateTotal()">
+                                <input type="number" name="product_1_price" id="p1_price" value="{% if is_edit_mode %}{{ order.product_1_price|cool_integer }}{% else %}1300{% endif %}" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
@@ -149,22 +156,22 @@
                             <div>
                                 <label>Product 2 (Optional)</label>
                                 <select name="product_2" id="p2_select" onchange="updatePrice('2')">
-                                    <option value="">-- None --</option>
-                                    <option value="Asthakesri">Asthakesri</option>
-                                    <option value="immunity Bosster">immunity Bosster</option>
-                                    <option value="Gastro Syrup">Gastro Syrup</option>
-                                    <option value="Pain Tablet">Pain Tablet</option>
-                                    <option value="Pain Oil">Pain Oil</option>
-                                    <option value="Onion Oil">Onion Oil</option>
+                                    <option value="" {% if not is_edit_mode or not order.product_2_name %}selected{% endif %}>-- None --</option>
+                                    <option value="Asthakesri" {% if is_edit_mode and order.product_2_name == 'Asthakesri' %}selected{% endif %}>Asthakesri</option>
+                                    <option value="immunity Bosster" {% if is_edit_mode and order.product_2_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
+                                    <option value="Gastro Syrup" {% if is_edit_mode and order.product_2_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
+                                    <option value="Pain Tablet" {% if is_edit_mode and order.product_2_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_2_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Onion Oil" {% if is_edit_mode and order.product_2_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
                                 </select>
                             </div>
                             <div>
                                 <label>Count</label>
-                                <input type="number" name="product_2_count" id="p2_count" value="0" min="0" oninput="calculateTotal()">
+                                <input type="number" name="product_2_count" id="p2_count" value="{% if is_edit_mode %}{{ order.product_2_count }}{% else %}0{% endif %}" min="0" oninput="calculateTotal()">
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_2_price" id="p2_price" value="0" oninput="calculateTotal()">
+                                <input type="number" name="product_2_price" id="p2_price" value="{% if is_edit_mode %}{{ order.product_2_price|cool_integer }}{% else %}0{% endif %}" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
@@ -174,46 +181,49 @@
                             <div>
                                 <label>Product 3 (Optional)</label>
                                 <select name="product_3" id="p3_select" onchange="updatePrice('3')">
-                                    <option value="">-- None --</option>
-                                    <option value="Asthakesri">Asthakesri</option>
-                                    <option value="immunity Bosster">immunity Bosster</option>
-                                    <option value="Gastro Syrup">Gastro Syrup</option>
-                                    <option value="Pain Tablet">Pain Tablet</option>
-                                    <option value="Pain Oil">Pain Oil</option>
-                                    <option value="Onion Oil">Onion Oil</option>
+                                    <option value="" {% if not is_edit_mode or not order.product_3_name %}selected{% endif %}>-- None --</option>
+                                    <option value="Asthakesri" {% if is_edit_mode and order.product_3_name == 'Asthakesri' %}selected{% endif %}>Asthakesri</option>
+                                    <option value="immunity Bosster" {% if is_edit_mode and order.product_3_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
+                                    <option value="Gastro Syrup" {% if is_edit_mode and order.product_3_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
+                                    <option value="Pain Tablet" {% if is_edit_mode and order.product_3_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_3_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Onion Oil" {% if is_edit_mode and order.product_3_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
                                 </select>
                             </div>
                             <div>
                                 <label>Count</label>
-                                <input type="number" name="product_3_count" id="p3_count" value="0" min="0" oninput="calculateTotal()">
+                                <input type="number" name="product_3_count" id="p3_count" value="{% if is_edit_mode %}{{ order.product_3_count }}{% else %}0{% endif %}" min="0" oninput="calculateTotal()">
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_3_price" id="p3_price" value="0" oninput="calculateTotal()">
+                                <input type="number" name="product_3_price" id="p3_price" value="{% if is_edit_mode %}{{ order.product_3_price|cool_integer }}{% else %}0{% endif %}" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
 
                     <div class="total-strip">
                         <span>Grand Total Price:</span>
-                        <span id="grand_total_display">₹1300</span>
+                        <span id="grand_total_display">₹0</span>
                     </div>
 
-                    <button type="submit" class="btn-submit">Submit Order</button>
+                    <button type="submit" class="btn-submit" style="background-color: {% if is_edit_mode %}#e67e22{% else %}#007bff{% endif %};">
+                        {% if is_edit_mode %} Save Changes {% else %} Submit Order {% endif %}
+                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- RIGHT: SYNC VIEW -->
         <div class="panel">
             <div class="panel-title" style="color: #444;">Your Sync View</div>
             
+            {% if not is_edit_mode %}
             <form method="GET" action="" style="display: flex; gap: 8px; margin-bottom: 15px; align-items: center; background: #fafafa; padding: 8px; border-radius: 4px; border: 1px solid #eee;">
                 <input type="date" name="emp_start_date" value="{{ emp_start_date }}" style="padding: 4px;">
                 <input type="date" name="emp_end_date" value="{{ emp_end_date }}" style="padding: 4px;">
                 <button type="submit" style="background: #24292e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Filter</button>
                 <a href="{% url 'dashboard' %}" style="font-size: 12px; color: #666; text-decoration: none;">Clear</a>
             </form>
+            {% endif %}
             
             <table class="orders-list-table">
                 <thead>
@@ -222,7 +232,7 @@
                         <th>Customer</th>
                         <th>Items</th>
                         <th>Total</th>
-                        <th>Status</th>
+                        <th>Status / Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -236,6 +246,9 @@
                             <span class="status-pill {% if ord.status == 'Generated' %}pill-generated{% elif ord.status == 'Cancel' %}pill-cancel{% else %}pill-pending{% endif %}">
                                 {{ ord.status }}
                             </span>
+                            {% if ord.status == 'Pending' %}
+                                <br><a href="{% url 'edit_order' ord.id %}" class="edit-link">✏️ Edit</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
@@ -250,11 +263,10 @@
     </div>
 
     <script>
-        // Force fully strict numeric constraint logic
         function validatePhoneInput(input) {
-            input.value = input.value.replace(/[^0-9]/g, ''); // Numbers ke alawa sab mita dega
+            input.value = input.value.replace(/[^0-9]/g, '');
             if (input.value.length > 10) {
-                input.value = input.value.slice(0, 10); // 10 digit se aage kat dega
+                input.value = input.value.slice(0, 10);
             }
         }
 
