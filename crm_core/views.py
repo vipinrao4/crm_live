@@ -9,11 +9,18 @@ from django.http import JsonResponse
 from .models import Order  
 from datetime import datetime
 
+# CLEAN CUSTOM INTEGER FILTER SUB-FUNCTION FOR PRICING
+def get_clean_int_price(value):
+    try:
+        return int(float(value or 0))
+    except (ValueError, TypeError):
+        return 0
+
 @login_required
 def dashboard(request):
     user = request.user
     
-    # AJAX Status Update Handler
+    # AJAX Status Update Handler (Admin Live Actions Control Engine)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'POST':
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
@@ -26,7 +33,7 @@ def dashboard(request):
             return JsonResponse({'status': 'error', 'message': 'Order not found'})
 
     # -----------------------------------------------------------------
-    # ROUTE 1: MASTER ADMIN CONTROL
+    # ROUTE 1: MASTER ADMIN CONTROL (Admin Logins Control View)
     # -----------------------------------------------------------------
     if user.is_staff or user.is_superuser:
         raw_orders = Order.objects.all().order_by('-date')
@@ -93,7 +100,7 @@ def dashboard(request):
                 f"State: {o.state or ''}\n"
                 f"Pincode: {o.pincode or ''}\n"
                 f"Items Summary:\n{whatsapp_items}\n\n"
-                f"Grand Total Price: Rs. {int(o.grand_total or 0)}\n"
+                f"Grand Total Price: Rs. {get_clean_int_price(o.grand_total)}\n"
                 f"-------------------------------------------\n"
                 f"Order Booked By: {o.employee.username if o.employee else 'Admin'}"
             )
@@ -105,7 +112,7 @@ def dashboard(request):
                 'customer_info': f"{o.customer_name} | {o.phone_1}",
                 'full_address': f"{o.address or ''}, {o.tehsil or ''}, {o.district or ''}, {o.state or ''} - {o.pincode or ''}",
                 'items_summary': items_desc,
-                'grand_total': int(o.grand_total or 0),
+                'grand_total': get_clean_int_price(o.grand_total),
                 'status': o.status or "Pending",
                 'whatsapp_text': wa_text,
                 'primary_phone': o.phone_1,
@@ -127,7 +134,7 @@ def dashboard(request):
             return render(request, 'crm_core/admin_control.html', context)
 
     # -----------------------------------------------------------------
-    # ROUTE 2: EMPLOYEE PORTAL
+    # ROUTE 2: EMPLOYEE PORTAL (Normal Employee View Portal)
     # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
@@ -178,3 +185,108 @@ def dashboard(request):
                 date=datetime.now().date(),
                 status='Pending'
             )
+        return redirect('dashboard')
+
+    raw_emp_orders = Order.objects.filter(employee=user).order_by('-date')
+    emp_start_date = request.GET.get('emp_start_date')
+    emp_end_date = request.GET.get('emp_end_date')
+    
+    if emp_start_date and emp_end_date:
+        raw_emp_orders = raw_emp_orders.filter(date__range=[emp_start_date, emp_end_date])
+
+    emp_orders_list = []
+    for o in raw_emp_orders:
+        emp_orders_list.append({
+            'id': o.id,
+            'date': o.date.strftime("%d-%m-%Y") if o.date else "",
+            'customer_name': o.customer_name,
+            'phone_1': o.phone_1,
+            'items': f"{o.product_1_name or ''} ({o.product_1_count or 0})",
+            'grand_total': get_clean_int_price(o.grand_total),
+            'status': o.status or "Pending"
+        })
+
+    context = {
+        'emp_orders_list': emp_orders_list,
+        'emp_start_date': emp_start_date or '',
+        'emp_end_date': emp_end_date or '',
+        'is_edit_mode': False
+    }
+
+    try:
+        return render(request, 'dashboard.html', context)
+    except Exception:
+        return render(request, 'crm_core/dashboard.html', context)
+
+
+# STRICT SECURED CONDITIONAL EDIT RE-ROUTE VIEW FOR EMPLOYEES
+@login_required
+def edit_order_view(request, order_id):
+    order_obj = get_object_or_404(Order, id=order_id, employee=request.user)
+    
+    if order_obj.status != 'Pending':
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        order_obj.customer_name = request.POST.get('name')
+        order_obj.phone_1 = (request.POST.get('phone_1') or '').replace(" ", "")[:10]
+        order_obj.phone_2 = (request.POST.get('phone_2') or '').replace(" ", "")[:10]
+        order_obj.address = request.POST.get('address')
+        order_obj.pincode = request.POST.get('pincode')
+        order_obj.tehsil = request.POST.get('tehsil')
+        order_obj.post_office = request.POST.get('post')
+        
+        order_obj.product_1_name = request.POST.get('product_1')
+        order_obj.product_1_count = int(request.POST.get('product_1_count', 1) or 1)
+        order_obj.product_1_price = float(request.POST.get('product_1_price', 0) or 0)
+        
+        order_obj.product_2_name = request.POST.get('product_2')
+        order_obj.product_2_count = int(request.POST.get('product_2_count', 0) or 0)
+        order_obj.product_2_price = float(request.POST.get('product_2_price', 0) or 0)
+        
+        order_obj.product_3_name = request.POST.get('product_3')
+        order_obj.product_3_count = int(request.POST.get('product_3_count', 0) or 0)
+        order_obj.product_3_price = float(request.POST.get('product_3_price', 0) or 0)
+        
+        order_obj.grand_total = (order_obj.product_1_count * order_obj.product_1_price) + \
+                                (order_obj.product_2_count * order_obj.product_2_price) + \
+                                (order_obj.product_3_count * order_obj.product_3_price)
+                                
+        order_obj.save()
+        return redirect('dashboard')
+        
+    # Backend mapping data configuration contexts
+    context = {
+        'order': order_obj,
+        'p1_p': get_clean_int_price(order_obj.product_1_price),
+        'p2_p': get_clean_int_price(order_obj.product_2_price),
+        'p3_p': get_clean_int_price(order_obj.product_3_price),
+        'is_edit_mode': True
+    }
+    try:
+        return render(request, 'dashboard.html', context)
+    except Exception:
+        return render(request, 'crm_core/dashboard.html', context)
+
+
+# STRICT RESCUE LOGIN ENGINE BLOCK CONTROLLERS
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('dashboard')
+    else:
+        form = AuthenticationForm()
+    try:
+        return render(request, 'login.html', {'form': form})
+    except Exception:
+        return render(request, 'crm_core/login.html', {'form': form})
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')

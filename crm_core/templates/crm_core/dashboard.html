@@ -40,7 +40,6 @@
         .pill-pending { background-color: #fff3cd; color: #856404; }
         
         .edit-link { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px; }
-        .edit-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -135,3 +134,178 @@
                                     <option value="Asthakesri" {% if is_edit_mode and order.product_1_name == 'Asthakesri' %}selected{% endif %}>Asthakesri</option>
                                     <option value="immunity Bosster" {% if is_edit_mode and order.product_1_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
                                     <option value="Gastro Syrup" {% if is_edit_mode and order.product_1_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
+                                    <option value="Pain Tablet" {% if is_edit_mode and order.product_1_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_1_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Onion Oil" {% if is_edit_mode and order.product_1_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Count</label>
+                                <input type="number" name="product_1_count" id="p1_count" value="{% if is_edit_mode %}{{ order.product_1_count }}{% else %}1{% endif %}" min="1" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label>Price (₹)</label>
+                                <input type="number" name="product_1_price" id="p1_price" value="{% if is_edit_mode %}{{ p1_p }}{% else %}1300{% endif %}" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-box">
+                        <div class="product-grid">
+                            <div>
+                                <label>Product 2 (Optional)</label>
+                                <select name="product_2" id="p2_select" onchange="updatePrice('2')">
+                                    <option value="" {% if not is_edit_mode or not order.product_2_name %}selected{% endif %}>-- None --</option>
+                                    <option value="Asthakesri" {% if is_edit_mode and order.product_2_name == 'Asthakesri' %}selected{% endif %}>Asthakesri</option>
+                                    <option value="immunity Bosster" {% if is_edit_mode and order.product_2_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
+                                    <option value="Gastro Syrup" {% if is_edit_mode and order.product_2_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
+                                    <option value="Pain Tablet" {% if is_edit_mode and order.product_2_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_2_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Onion Oil" {% if is_edit_mode and order.product_2_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Count</label>
+                                <input type="number" name="product_2_count" id="p2_count" value="{% if is_edit_mode %}{{ order.product_2_count }}{% else %}0{% endif %}" min="0" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label>Price (₹)</label>
+                                <input type="number" name="product_2_price" id="p2_price" value="{% if is_edit_mode %}{{ p2_p }}{% else %}0{% endif %}" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-box">
+                        <div class="product-grid">
+                            <div>
+                                <label>Product 3 (Optional)</label>
+                                <select name="product_3" id="p3_select" onchange="updatePrice('3')">
+                                    <option value="" {% if not is_edit_mode or not order.product_3_name %}selected{% endif %}>-- None --</option>
+                                    <option value="Asthakesri" {% if is_edit_mode and order.product_3_name == 'Asthakesri' %}selected{% endif %}>Asthakesri</option>
+                                    <option value="immunity Bosster" {% if is_edit_mode and order.product_3_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
+                                    <option value="Gastro Syrup" {% if is_edit_mode and order.product_3_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
+                                    <option value="Pain Tablet" {% if is_edit_mode and order.product_3_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
+                                    <option value="Pain Oil" {% if is_edit_mode and order.product_3_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Onion Oil" {% if is_edit_mode and order.product_3_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Count</label>
+                                <input type="number" name="product_3_count" id="p3_count" value="{% if is_edit_mode %}{{ order.product_3_count }}{% else %}0{% endif %}" min="0" oninput="calculateTotal()">
+                            </div>
+                            <div>
+                                <label>Price (₹)</label>
+                                <input type="number" name="product_3_price" id="p3_price" value="{% if is_edit_mode %}{{ p3_p }}{% else %}0{% endif %}" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="total-strip">
+                        <span>Grand Total Price:</span>
+                        <span id="grand_total_display">₹0</span>
+                    </div>
+
+                    <button type="submit" class="btn-submit" style="background-color: {% if is_edit_mode %}#e67e22{% else %}#007bff{% endif %};">
+                        {% if is_edit_mode %} Save Changes {% else %} Submit Order {% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title" style="color: #444;">Your Sync View</div>
+            
+            {% if not is_edit_mode %}
+            <form method="GET" action="" style="display: flex; gap: 8px; margin-bottom: 15px; align-items: center; background: #fafafa; padding: 8px; border-radius: 4px; border: 1px solid #eee;">
+                <input type="date" name="emp_start_date" value="{{ emp_start_date }}" style="padding: 4px;">
+                <input type="date" name="emp_end_date" value="{{ emp_end_date }}" style="padding: 4px;">
+                <button type="submit" style="background: #24292e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">Filter</button>
+                <a href="{% url 'dashboard' %}" style="font-size: 12px; color: #666; text-decoration: none;">Clear</a>
+            </form>
+            {% endif %}
+            
+            <table class="orders-list-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status / Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ord in emp_orders_list %}
+                    <tr>
+                        <td>{{ ord.date }}</td>
+                        <td><strong>{{ ord.customer_name }}</strong><br>{{ ord.phone_1 }}</td>
+                        <td>{{ ord.items }}</td>
+                        <td>₹{{ ord.grand_total }}</td>
+                        <td>
+                            <span class="status-pill {% if ord.status == 'Generated' %}pill-generated{% elif ord.status == 'Cancel' %}pill-cancel{% else %}pill-pending{% endif %}">
+                                {{ ord.status }}
+                            </span>
+                            {% if ord.status == 'Pending' %}
+                                <br><a href="{% url 'edit_order' ord.id %}" class="edit-link" style="color:#007bff; text-decoration:none; font-weight:bold;">✏️ Edit</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #aaa; padding: 20px 0;">No logs found for selection.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        function validatePhoneInput(input) {
+            input.value = input.value.replace(/[^0-9]/g, '');
+            if (input.value.length > 10) {
+                input.value = input.value.slice(0, 10);
+            }
+        }
+
+        const priceMap = {
+            "Asthakesri": 1300,
+            "immunity Bosster": 1000,
+            "Gastro Syrup": 450,
+            "Pain Tablet": 300,
+            "Pain Oil": 250,
+            "Onion Oil": 400,
+            "": 0
+        };
+
+        function updatePrice(id) {
+            let selectedProduct = document.getElementById('p' + id + '_select').value;
+            let priceInput = document.getElementById('p' + id + '_price');
+            let countInput = document.getElementById('p' + id + '_count');
+            
+            priceInput.value = priceMap[selectedProduct] || 0;
+            
+            if (selectedProduct !== "" && countInput.value == 0) {
+                countInput.value = 1;
+            } else if (selectedProduct === "") {
+                countInput.value = 0;
+            }
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let p1c = parseInt(document.getElementById('p1_count').value) || 0;
+            let p1p = parseFloat(document.getElementById('p1_price').value) || 0;
+            let p2c = parseInt(document.getElementById('p2_count').value) || 0;
+            let p2p = parseFloat(document.getElementById('p2_price').value) || 0;
+            let p3c = parseInt(document.getElementById('p3_count').value) || 0;
+            let p3p = parseFloat(document.getElementById('p3_price').value) || 0;
+            
+            let total = (p1c * p1p) + (p2c * p2p) + (p3c * p3p);
+            document.getElementById('grand_total_display').innerText = '₹' + total;
+        }
+        calculateTotal();
+    </script>
+</body>
+</html>
