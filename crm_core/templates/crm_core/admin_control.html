@@ -164,7 +164,16 @@
                     </td>
                     <td>{{ log.date }}</td>
                     <td><span class="badge-all" style="background-color: #6c757d;">{{ log.emp }}</span></td>
-                    <td>{{ log.customer_info }}</td>
+                    <td>
+                        {{ log.customer_info }}
+                        {% if "Repeat" in log.whatsapp_text or "is_repeat" in log or log.whatsapp_text and "Order Type: Repeat" in log.whatsapp_text or "Repeat" in log.whatsapp_text %}
+                            {% endif %}
+                        {% for raw_o in master_orders_log %}
+                            {% if raw_o.id == log.id and "Repeat" in log.whatsapp_text %}
+                                <br><span style="background:#fff3cd; color:#856404; font-size:11px; padding:2px 6px; border-radius:3px; font-weight:bold; display:inline-block; margin-top:4px;">🔁 Repeat Order</span>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
                     <td>{{ log.full_address }}</td>
                     <td>{{ log.items_summary }}</td>
                     <td><strong>₹{{ log.grand_total }}</strong></td>
@@ -212,13 +221,11 @@
                 return;
             }
 
-            // Ek baar confirmation le lete hain kyunki zyada tabs khulenge
             if(checkedBoxes.length > 10) {
                 let proceed = confirm(`Aapne ${checkedBoxes.length} orders select kiye hain. Kya aap ek sath itne saare WhatsApp tabs open karna chahte hain?`);
                 if(!proceed) return;
             }
 
-            // Loop chalakar har ek order ka alag tab kholenge
             checkedBoxes.forEach(box => {
                 let orderText = box.getAttribute('data-text');
                 let finalUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(orderText);
