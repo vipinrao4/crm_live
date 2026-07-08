@@ -1,5 +1,5 @@
 import os
-from django.shortcuts import render, redirect, get_object_or_get_content
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
@@ -13,7 +13,7 @@ from datetime import datetime
 def dashboard(request):
     user = request.user
     
-    # AJAX Status Update Handler (Green/Red Action Buttons ke liye)
+    # AJAX Status Update Handler (Generated/Cancel buttons ke liye)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'POST':
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
@@ -26,7 +26,7 @@ def dashboard(request):
             return JsonResponse({'status': 'error', 'message': 'Order not found'})
 
     # -----------------------------------------------------------------
-    # ROUTE 1: MASTER ADMIN CONTROL (Admin View)
+    # ROUTE 1: MASTER ADMIN CONTROL (Admin ya Superuser View)
     # -----------------------------------------------------------------
     if user.is_staff or user.is_superuser:
         raw_orders = Order.objects.all().order_by('-date')
@@ -83,7 +83,7 @@ def dashboard(request):
             items_desc = ", ".join([i.replace("* ", "") for i in items_list])
             whatsapp_items = "\n".join(items_list)
             
-            # Pure Dynamic WhatsApp Format Setup
+            # WhatsApp Format Mapping
             wa_text = (
                 f"Customer Name: {o.customer_name}\n"
                 f"Phone: {o.phone_1 or ''}{', ' + o.phone_2 if o.phone_2 else ''}\n"
@@ -128,7 +128,7 @@ def dashboard(request):
             return render(request, 'crm_core/admin_control.html', context)
 
     # -----------------------------------------------------------------
-    # ROUTE 2: EMPLOYEE PORTAL
+    # ROUTE 2: EMPLOYEE PORTAL (Normal Employee View)
     # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
@@ -180,7 +180,7 @@ def dashboard(request):
         )
         return redirect('dashboard')
 
-    # Employee View Filters
+    # Employee Filters
     raw_emp_orders = Order.objects.filter(employee=user).order_by('-date')
     emp_start_date = request.GET.get('emp_start_date')
     emp_end_date = request.GET.get('emp_end_date')
