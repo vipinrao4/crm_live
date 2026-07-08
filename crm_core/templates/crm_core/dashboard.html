@@ -39,7 +39,7 @@
         .pill-cancel { background-color: #f8d7da; color: #721c24; }
         .pill-pending { background-color: #fff3cd; color: #856404; }
         
-        .edit-link { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px; }
+        .edit-link { display: inline-block; color: #007bff; text-decoration: none; font-weight: bold; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -145,7 +145,7 @@
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_1_price" id="p1_price" value="{% if is_edit_mode %}{{ p1_p }}{% else %}1300{% endif %}" oninput="calculateTotal()">
+                                <input type="number" name="product_1_price" id="p1_price" value="1300" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
@@ -160,7 +160,7 @@
                                     <option value="immunity Bosster" {% if is_edit_mode and order.product_2_name == 'immunity Bosster' %}selected{% endif %}>immunity Bosster</option>
                                     <option value="Gastro Syrup" {% if is_edit_mode and order.product_2_name == 'Gastro Syrup' %}selected{% endif %}>Gastro Syrup</option>
                                     <option value="Pain Tablet" {% if is_edit_mode and order.product_2_name == 'Pain Tablet' %}selected{% endif %}>Pain Tablet</option>
-                                    <option value="Pain Oil" {% if is_edit_mode and order.product_2_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
+                                    <option value="Pain Oil" {% if is_edit_mode remission and order.product_2_name == 'Pain Oil' %}selected{% endif %}>Pain Oil</option>
                                     <option value="Onion Oil" {% if is_edit_mode and order.product_2_name == 'Onion Oil' %}selected{% endif %}>Onion Oil</option>
                                 </select>
                             </div>
@@ -170,7 +170,7 @@
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_2_price" id="p2_price" value="{% if is_edit_mode %}{{ p2_p }}{% else %}0{% endif %}" oninput="calculateTotal()">
+                                <input type="number" name="product_2_price" id="p2_price" value="0" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
@@ -195,14 +195,14 @@
                             </div>
                             <div>
                                 <label>Price (₹)</label>
-                                <input type="number" name="product_3_price" id="p3_price" value="{% if is_edit_mode %}{{ p3_p }}{% else %}0{% endif %}" oninput="calculateTotal()">
+                                <input type="number" name="product_3_price" id="p3_price" value="0" oninput="calculateTotal()">
                             </div>
                         </div>
                     </div>
 
                     <div class="total-strip">
                         <span>Grand Total Price:</span>
-                        <span id="grand_total_display">₹0</span>
+                        <span id="grand_total_display">₹{% if is_edit_mode %}{{ grand_total_int }}{% else %}0{% endif %}</span>
                     </div>
 
                     <button type="submit" class="btn-submit" style="background-color: {% if is_edit_mode %}#e67e22{% else %}#007bff{% endif %};">
@@ -246,7 +246,7 @@
                                 {{ ord.status }}
                             </span>
                             {% if ord.status == 'Pending' %}
-                                <br><a href="{% url 'edit_order' ord.id %}" class="edit-link" style="color:#007bff; text-decoration:none; font-weight:bold;">✏️ Edit</a>
+                                <br><a href="{% url 'edit_order' ord.id %}" class="edit-link">✏️ Edit</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -305,7 +305,17 @@
             let total = (p1c * p1p) + (p2c * p2p) + (p3c * p3p);
             document.getElementById('grand_total_display').innerText = '₹' + total;
         }
-        calculateTotal();
+
+        // FIXED: AUTOMATIC LIVE CORRECTION ENGINE ON LOADING AN EXISTING RECORD
+        {% if is_edit_mode %}
+            window.onload = function() {
+                updatePrice('1');
+                updatePrice('2');
+                updatePrice('3');
+            };
+        {% else %}
+            calculateTotal();
+        {% endif %}
     </script>
 </body>
 </html>

@@ -202,7 +202,7 @@ def dashboard(request):
             'phone_1': o.phone_1,
             'items': f"{o.product_1_name or ''} ({o.product_1_count or 0})",
             'grand_total': get_clean_int_price(o.grand_total),
-            'status': o.status if o.status else "Pending"  # Strict check for status value mapping
+            'status': o.status if o.status else "Pending"
         })
 
     context = {
@@ -218,11 +218,11 @@ def dashboard(request):
         return render(request, 'crm_core/dashboard.html', context)
 
 
+# FIXED LOGIC: REMOVED BROKEN PRODUCT_1_PRICE ATTRIBUTES FROM MODEL DISCOVERY
 @login_required
 def edit_order_view(request, order_id):
     order_obj = get_object_or_404(Order, id=order_id, employee=request.user)
     
-    # Validation block for lockdown edit security
     if order_obj.status and order_obj.status != 'Pending':
         return redirect('dashboard')
         
@@ -237,28 +237,26 @@ def edit_order_view(request, order_id):
         
         order_obj.product_1_name = request.POST.get('product_1')
         order_obj.product_1_count = int(request.POST.get('product_1_count', 1) or 1)
-        order_obj.product_1_price = float(request.POST.get('product_1_price', 0) or 0)
+        p1_price = float(request.POST.get('product_1_price', 0) or 0)
         
         order_obj.product_2_name = request.POST.get('product_2')
         order_obj.product_2_count = int(request.POST.get('product_2_count', 0) or 0)
-        order_obj.product_2_price = float(request.POST.get('product_2_price', 0) or 0)
+        p2_price = float(request.POST.get('product_2_price', 0) or 0)
         
         order_obj.product_3_name = request.POST.get('product_3')
         order_obj.product_3_count = int(request.POST.get('product_3_count', 0) or 0)
-        order_obj.product_3_price = float(request.POST.get('product_3_price', 0) or 0)
+        p3_price = float(request.POST.get('product_3_price', 0) or 0)
         
-        order_obj.grand_total = (order_obj.product_1_count * order_obj.product_1_price) + \
-                                (order_obj.product_2_count * order_obj.product_2_price) + \
-                                (order_obj.product_3_count * order_obj.product_3_price)
+        order_obj.grand_total = (order_obj.product_1_count * p1_price) + \
+                                (order_obj.product_2_count * p2_price) + \
+                                (order_obj.product_3_count * p3_price)
                                 
         order_obj.save()
         return redirect('dashboard')
         
     context = {
         'order': order_obj,
-        'p1_p': get_clean_int_price(order_obj.product_1_price),
-        'p2_p': get_clean_int_price(order_obj.product_2_price),
-        'p3_p': get_clean_int_price(order_obj.product_3_price),
+        'grand_total_int': get_clean_int_price(order_obj.grand_total),
         'is_edit_mode': True
     }
     
