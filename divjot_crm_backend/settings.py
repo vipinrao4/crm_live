@@ -1,6 +1,14 @@
 import os
 from pathlib import Path
 
+# Naye driver ko Django ke sath compatible banane ke liye injector logic
+try:
+    import psycopg
+    import sys
+    sys.modules['psycopg2'] = psycopg
+except ImportError:
+    pass
+
 # Project ka Base Directory path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
 
