@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import dj_database_url
 
 # Project ka Base Directory path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,37 +58,31 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FINAL DATABASE PARSING CONFIGURATION
+# FIXED: EXPLICIT DIRECT VARIABLE MAPPING FOR PSYCOPG3 COMPATIBILITY
 # =====================================================================
 if os.environ.get('DB_NAME'):
     DATABASES = {
         'default': {
+            # Python 3.14+ aur psycopg v3 ke liye standard modern engine format
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME'),
             'USER': os.environ.get('DB_USER'),
             'PASSWORD': os.environ.get('DB_PASSWORD'),
             'HOST': os.environ.get('DB_HOST'),
             'PORT': os.environ.get('DB_PORT', '5432'),
+            'OPTIONS': {
+                'target_session_attrs': 'read-write',
+            },
         }
     }
 else:
-    # Agar Render par individual variables fass rahe hain toh direct cloud setup url backup lagayenge
-    db_url = os.environ.get('LIVE_DATABASE_URL', os.environ.get('DATABASE_URL', '')).strip()
-    if db_url:
-        DATABASES = {
-            'default': dj_database_url.config(
-                default=db_url,
-                engine='django.db.backends.postgresql',
-                conn_max_age=600
-            )
+    # Agar individual variable na milein toh backup local database chalega
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    }
 
 
 # Password validation architecture
