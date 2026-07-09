@@ -70,7 +70,7 @@ def dashboard(request):
         for o in raw_orders:
             current_order_units = (getattr(o, 'product_1_count', 0) or 0) + (getattr(o, 'product_2_count', 0) or 0) + (getattr(o, 'product_3_count', 0) or 0)
             total_products_sold += current_order_units
-            if getattr(o, 'order_type', 'New') == 'Repeat' or getattr(o, 'is_repeat', False):
+            if getattr(o, 'is_repeat', False):
                 repeat_orders_units_total += current_order_units
                 
         employees = User.objects.filter(is_staff=False)
@@ -82,10 +82,12 @@ def dashboard(request):
             for eo in emp_orders:
                 eo_units = (getattr(eo, 'product_1_count', 0) or 0) + (getattr(eo, 'product_2_count', 0) or 0) + (getattr(eo, 'product_3_count', 0) or 0)
                 emp_p_count += eo_units
-                if getattr(eo, 'order_type', 'New') == 'Repeat' or getattr(eo, 'is_repeat', False):
+                if getattr(eo, 'is_repeat', False):
                     emp_repeat_count += eo_units
             
-            new_orders_units = emp_orders.count() - emp_orders.filter(Q(order_type='Repeat') | Q(is_repeat=True)).count()
+            # FIXED: order_type hata kar is_repeat=True use kiya hai filtering ke liye
+            repeat_orders_count_for_emp = emp_orders.filter(is_repeat=True).count()
+            new_orders_units = emp_orders.count() - repeat_orders_count_for_emp
             
             emp_summary.append({
                 'username': emp.username,
@@ -107,9 +109,7 @@ def dashboard(request):
             items_desc = ", ".join([i.replace("* ", "") for i in items_list])
             whatsapp_items = "\n".join(items_list)
             
-            is_rep = False
-            if getattr(o, 'order_type', '') == 'Repeat' or getattr(o, 'is_repeat', False):
-                is_rep = True
+            is_rep = getattr(o, 'is_repeat', False)
 
             wa_text = (
                 f"Customer Name: {o.customer_name}\n"
@@ -143,7 +143,7 @@ def dashboard(request):
         context = {
             'total_orders_count': total_orders_count,
             'total_products_sold': total_products_sold,
-            'repeat_orders_count': repeat_orders_units_total,  # Ab yahan Total Units jayega
+            'repeat_orders_count': repeat_orders_units_total, 
             'emp_summary': emp_summary,
             'master_orders_log': master_orders_log,
             'start_date': start_date,
@@ -182,10 +182,12 @@ def dashboard(request):
         p3_price = float(request.POST.get('product_3_price', 0) or 0)
         
         grand_total = (p1_count * p1_price) + (p2_count * p2_price) + (p3_count * p3_price)
+        
+        # Sahi validation logic based on existing fields
         is_customer_repeat = (order_submitted_type == 'Repeat') or Order.objects.filter(phone_1=phone_1).exists()
 
         if phone_1:
-            new_order = Order.objects.create(
+            Order.objects.create(
                 employee=user,
                 customer_name=customer_name,
                 phone_1=phone_1,
@@ -207,9 +209,6 @@ def dashboard(request):
                 date=datetime.now().date(),
                 status='Pending'
             )
-            if hasattr(new_order, 'order_type'):
-                new_order.order_type = order_submitted_type
-                new_order.save()
                 
         return redirect('dashboard')
 
@@ -223,7 +222,7 @@ def dashboard(request):
     emp_orders_list = []
     for o in raw_emp_orders:
         resolved_type = "New"
-        if getattr(o, 'order_type', '') == 'Repeat' or getattr(o, 'is_repeat', False):
+        if getattr(o, 'is_repeat', False):
             resolved_type = "Repeat"
 
         emp_orders_list.append({
@@ -286,7 +285,7 @@ def edit_order_view(request, order_id):
         return redirect('dashboard')
         
     resolved_edit_type = "New"
-    if getattr(order_obj, 'order_type', '') == 'Repeat' or getattr(order_obj, 'is_repeat', False):
+    if getattr(order_obj, 'is_repeat', False):
         resolved_edit_type = "Repeat"
 
     context = {
