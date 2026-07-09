@@ -1,4 +1,5 @@
 import sys
+# Python 3.14 bootstrap module connection injection
 try:
     import psycopg
     sys.modules['psycopg2'] = psycopg
@@ -56,25 +57,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
-# =====================================================================
-# FAIL-SAFE ENVIRONMENT DATABASE PARSING WITH HARDCODED FALLBACK
-# =====================================================================
-db_config = dj_database_url.config(conn_max_age=600, ssl_require=False)
+# Automatic URL mapping injection
+db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=False)
 
-if db_config:
+if db_from_env:
     DATABASES = {
-        'default': db_config
+        'default': db_from_env
     }
 else:
-    # Dashboard variables fallback parsing
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'divjot_db',
-            'USER': 'divjot_db_user',
-            'PASSWORD': 'VR9Uoc7Xl4CrOPuhCOIHXykEuACOscoi',
-            'HOST': 'dpg-d97mpd3eo5us73a7tbb0-a',
-            'PORT': '5432',
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
