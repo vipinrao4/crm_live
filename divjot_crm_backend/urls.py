@@ -5,7 +5,7 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Django ke asli LoginView ko bol rahe hain ki hamari standalone file use kare bina kisi folder dependency ke
+    # Yeh framework directly standard registration format handle karega bina custom validation pange ke
     path('accounts/login/', auth_views.LoginView.as_view(template_name='crm_core/admin_control.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/accounts/login/'), name='logout'),
     

@@ -8,85 +8,144 @@
     <style>
         body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         .card { border: none; border-radius: 10px; }
+        .btn-emerald { background-color: #198754; color: white; }
     </style>
 </head>
 <body>
 
-{% if not user.is_authenticated %}
-<!-- LOGIN FORM IF NOT LOGGED IN -->
-<div class="d-flex align-items-center justify-content-center vh-100">
-    <div class="card shadow-sm p-4 bg-white" style="max-width: 400px; width: 100%;">
-        <div class="text-center mb-4">
-            <h3 class="fw-bold text-dark">Divjot CRM</h3>
-            <p class="text-muted small">Sign in to access Master Admin Control</p>
-        </div>
-        <form method="POST" action="/accounts/login/">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label class="form-label small fw-bold text-muted">Username</label>
-                <input type="text" name="username" class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label small fw-bold text-muted">Password</label>
-                <input type="password" name="password" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-danger w-100 fw-bold mt-2">Login to Dashboard</button>
-        </form>
-    </div>
-</div>
-{% else %}
-<!-- ACTUAL DASHBOARD CONTENT -->
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white shadow-sm rounded">
         <h2 class="mb-0 fs-3 fw-bold text-dark">Master Admin Control <span class="badge bg-danger fs-6 ms-2">All Access</span></h2>
         <a href="/accounts/logout/" class="btn btn-outline-danger btn-sm fw-bold">Logout</a>
     </div>
 
-    <!-- COUNTER CARDS -->
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card p-3 shadow-sm bg-white border-start border-danger border-4">
-                <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Filtered Total Orders</small>
-                <h3 class="text-danger mb-0 fw-bold">{{ total_orders|default:"1" }}</h3>
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm bg-white">
+                <label class="form-label fw-bold text-muted small">Filter by Date Range</label>
+                <form method="GET" class="d-flex gap-2">
+                    <input type="date" name="start_date" class="form-control form-control-sm">
+                    <input type="date" name="end_date" class="form-control form-control-sm">
+                    <button type="submit" class="btn btn-dark btn-sm px-3 fw-bold">Apply Filter</button>
+                    <a href="?" class="btn btn-outline-secondary btn-sm fw-bold">Reset All</a>
+                </form>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card p-3 shadow-sm bg-white border-start border-primary border-4">
-                <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Filtered Total Products Sold</small>
-                <h3 class="text-primary mb-0 fw-bold">{{ total_products_sold|default:"1" }} Units</h3>
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm bg-white">
+                <label class="form-label fw-bold text-muted small">Search by Phone Number</label>
+                <form method="GET" class="input-group input-group-sm">
+                    <input type="text" name="search_phone" class="form-control" placeholder="Enter phone 1 or phone 2...">
+                    <button type="submit" class="btn btn-danger px-3 fw-bold">Search</button>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- MASTER ORDER LOG -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm bg-white border-start border-danger border-4">
+                <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Filtered Total Orders</small>
+                <h3 class="text-danger mb-0 fw-bold">{{ total_orders }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm bg-white border-start border-primary border-4">
+                <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Filtered Total Products Sold (Units)</small>
+                <h3 class="text-primary mb-0 fw-bold">{{ total_products_sold }} Units</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm bg-white border-start border-warning border-4">
+                <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Repeat Orders Counter (Units)</small>
+                <h3 class="text-warning mb-0 fw-bold">{{ repeat_orders_count }} Units</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex justify-content-between align-items-center py-2 px-3 shadow-sm mb-4 fs-6">
+        <span><strong>0 Orders Selected</strong> for individual forwarding.</span>
+        <button class="btn btn-success btn-sm fw-bold">Send Selected as Separate Messages</button>
+    </div>
+
     <div class="card shadow-sm p-3 mb-4 bg-white">
+        <div class="mb-3">
+            <h5 class="mb-0 fw-bold text-dark">Employee Performance Summary</h5>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle border mb-0">
                 <thead class="table-light text-muted small text-uppercase">
                     <tr>
+                        <th>Employee Name</th>
+                        <th>New Orders (Product Count)</th>
+                        <th>Repeat Orders (Product Count)</th>
+                        <th>Total Products Sold</th>
+                        <th>Ads Spent (₹) [Input Values]</th>
+                        <th>Avg Cost / Unit (₹) [Formula]</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    <tr>
+                        <td class="fw-bold text-dark">dummyemp</td>
+                        <td>1</td>
+                        <td>0 Units</td>
+                        <td>1 Units</td>
+                        <td><input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="0" style="width: 80px;" disabled></td>
+                        <td class="fw-bold">₹0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm p-3 mb-4 bg-white">
+        <div class="mb-3">
+            <h5 class="mb-0 fw-bold text-dark">Master Order Log</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle border mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="form-check-input"></th>
                         <th>Date</th>
                         <th>Emp</th>
                         <th>Customer & Contacts</th>
                         <th>Full Address</th>
+                        <th>Items Summary</th>
                         <th>Grand Total</th>
+                        <th>Status / Live Action Controls</th>
                     </tr>
                 </thead>
                 <tbody class="small">
                     {% for order in orders %}
                     <tr>
+                        <td><input type="checkbox" class="form-check-input"></td>
                         <td class="text-muted">{{ order.date|date:"d-m-Y" }}</td>
                         <td><span class="badge bg-secondary px-2 py-1">{{ order.emp }}</span></td>
-                        <td class="fw-bold text-dark">{{ order.customer_name }}</td>
-                        <td>{{ order.address }}</td>
+                        <td class="fw-bold text-dark">{{ order.customer_name }} | {{ order.phone }}</td>
+                        <td class="text-muted text-truncate" style="max-width: 250px;">{{ order.address }}</td>
+                        <td>{{ order.items }}</td>
                         <td class="fw-bold text-dark">₹{{ order.total }}</td>
+                        <td>
+                            <span class="badge bg-success px-2 py-1 me-1 text-uppercase">{{ order.status }}</span>
+                            <button class="btn btn-danger btn-xs py-0 px-1 text-white" style="font-size: 11px;">Cancel</button>
+                            <button class="btn btn-emerald btn-xs py-0 px-1 text-white bg-success" style="font-size: 11px;">WhatsApp</button>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr>
+                    <tr class="table-success-light">
+                        <td><input type="checkbox" class="form-check-input"></td>
                         <td class="text-muted">09-07-2026</td>
                         <td><span class="badge bg-secondary px-2 py-1">dummyemp</span></td>
                         <td class="fw-bold text-dark">test | 9999988888</td>
-                        <td>Lucknow, Uttar Pradesh</td>
+                        <td class="text-muted text-truncate" style="max-width: 250px;">56, Lucknow, Uttar Pradesh - 226017</td>
+                        <td>Asthakesri (x1)</td>
                         <td class="fw-bold text-dark">₹1300</td>
+                        <td>
+                            <span class="badge bg-success px-2 py-1 me-1 text-uppercase">Generated</span>
+                            <button class="btn btn-danger btn-xs py-0 px-1 text-white" style="font-size: 11px;">Cancel</button>
+                            <button class="btn btn-emerald btn-xs py-0 px-1 text-white bg-success" style="font-size: 11px;">WhatsApp</button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -94,7 +153,6 @@
         </div>
     </div>
 </div>
-{% endif %}
 
 </body>
 </html>
