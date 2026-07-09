@@ -54,15 +54,16 @@ TEMPLATES = [
     },
 ]
 
+# WSGI Application binding
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FIXED: CLOUD DATABASE SETUP WITH STRICT EMPTY CHECK FOR FREE PLAN
+# FIXED: 100% BULLETPROOF DATABASE CONFIGURATION BYPASS
 # =====================================================================
-# Agar Environment variable khali ya galat hoga toh crash nahi hoga, local backup chalega
 db_env_url = os.environ.get('DATABASE_URL', '').strip()
 
+# Agar Render par URL bilkul khali ('') milega toh library touch hi nahi hogi, seedhe sqlite chalega
 if not db_env_url:
     DATABASES = {
         'default': {
@@ -71,11 +72,9 @@ if not db_env_url:
         }
     }
 else:
+    # Agar link maujood hai, tabhi config load hoga
     DATABASES = {
-        'default': dj_database_url.config(
-            default=db_env_url,
-            conn_max_age=600
-        )
+        'default': dj_database_url.parse(db_env_url, conn_max_age=600)
     }
 
 
