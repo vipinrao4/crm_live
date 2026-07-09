@@ -58,7 +58,7 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FIXED: EXPLICIT DIRECT VARIABLE MAPPING WITH FALLBACK
+# FINAL: EXPLICIT DIRECT VARIABLE MAPPING WITH FALLBACK
 # =====================================================================
 if os.environ.get('DB_NAME'):
     DATABASES = {
