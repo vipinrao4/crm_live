@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -49,18 +50,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 # =====================================================================
-# STANDARD DATABASE CONFIGURATION USING ENVIRONMENT VARIABLES
+# FIXED: AUTOMATIC DATABASE URL CONFIGURATION (FOR PYTHON 3.10)
 # =====================================================================
-if os.environ.get('DB_NAME'):
+# Yeh line aapke screenshot wale DATABASE_URL ko automatic detect karegi
+db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=False)
+
+if db_from_env:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME'),
-            'USER': os.environ.get('DB_USER'),
-            'PASSWORD': os.environ.get('DB_PASSWORD'),
-            'HOST': os.environ.get('DB_HOST'),
-            'PORT': os.environ.get('DB_PORT', '5432'),
-        }
+        'default': db_from_env
     }
 else:
     DATABASES = {
