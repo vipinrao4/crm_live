@@ -1,3 +1,11 @@
+import sys
+# CRITICAL FIX FOR PYTHON 3.11+: Mock psycopg2 using the new psycopg binary BEFORE django loads
+try:
+    import psycopg
+    sys.modules['psycopg2'] = psycopg
+except ImportError:
+    pass
+
 import os
 from pathlib import Path
 import dj_database_url
@@ -50,9 +58,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 # =====================================================================
-# FIXED: AUTOMATIC DATABASE URL CONFIGURATION (FOR PYTHON 3.10)
+# FIXED DATABASE ROUTING FOR POSTGRES LIVE_DATABASE_URL / DATABASE_URL
 # =====================================================================
-# Yeh line aapke screenshot wale DATABASE_URL ko automatic detect karegi
 db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=False)
 
 if db_from_env:
