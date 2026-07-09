@@ -3,8 +3,10 @@ from django.contrib.auth.decorators import login_required
 from django.apps import apps
 
 @login_required
-def admin_control_view(request):
+def dashboard(request):
     orders_list = []
+    
+    # Database se data safe nikalne ka tarika taaki crash na ho
     try:
         OrderModel = apps.get_model('crm_core', 'Order')
         orders_list = OrderModel.objects.all().order_by('-id')
