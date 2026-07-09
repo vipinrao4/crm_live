@@ -9,6 +9,17 @@ from django.http import JsonResponse
 from .models import Order  
 from datetime import datetime
 
+# =====================================================================
+# FIXED AUTOMATIC MASTER ADMIN CREATION SCRIPT (For Free Render Plan)
+# =====================================================================
+try:
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser('admin', 'admin@divjot.com', 'Divjot@777')
+        print("✅ Superuser 'admin' created successfully with password 'Divjot@777'")
+except Exception as e:
+    pass
+
+
 def get_clean_int_price(value):
     try:
         return int(float(value or 0))
@@ -85,7 +96,6 @@ def dashboard(request):
                 if getattr(eo, 'is_repeat', False):
                     emp_repeat_count += eo_units
             
-            # FIXED: order_type hata kar is_repeat=True use kiya hai filtering ke liye
             repeat_orders_count_for_emp = emp_orders.filter(is_repeat=True).count()
             new_orders_units = emp_orders.count() - repeat_orders_count_for_emp
             
@@ -182,8 +192,6 @@ def dashboard(request):
         p3_price = float(request.POST.get('product_3_price', 0) or 0)
         
         grand_total = (p1_count * p1_price) + (p2_count * p2_price) + (p3_count * p3_price)
-        
-        # Sahi validation logic based on existing fields
         is_customer_repeat = (order_submitted_type == 'Repeat') or Order.objects.filter(phone_1=phone_1).exists()
 
         if phone_1:
