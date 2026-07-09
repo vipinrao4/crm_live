@@ -59,17 +59,19 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FIXED: JAD SE KHATAM KISSA - NO MORE DJ_DATABASE_URL CRASH
+# FIXED: SUPPORT FOR BOTH POSTGRES AND POSTGRESQL FORMATS
 # =====================================================================
-# Agar Render par DATABASE_URL bilkul sahi format me milegi, tabhi hum use parse karenge, nahi toh seedhe backup chalega
 db_env_url = os.environ.get('DATABASE_URL', '').strip()
+
+# Agar link me postgresql:// hai, toh use postgres:// me convert kar rahe hain taaki library crash na ho
+if db_env_url.startswith('postgresql://'):
+    db_env_url = db_env_url.replace('postgresql://', 'postgres://', 1)
 
 if db_env_url and db_env_url.startswith('postgres://'):
     DATABASES = {
         'default': dj_database_url.parse(db_env_url, conn_max_age=600)
     }
 else:
-    # Render par agar variable nahi mil raha ya khali hai, toh crash hone ki jagah ye safe local chalega
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
