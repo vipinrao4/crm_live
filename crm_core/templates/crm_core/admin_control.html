@@ -35,32 +35,32 @@
         <div class="col-md-4">
             <div class="card p-3 shadow-sm border-start border-danger border-4">
                 <small class="text-muted fw-bold d-block mb-1">Filtered Total Orders</small>
-                <h3 class="text-danger mb-0">{{ total_orders|default:"1" }}</h3>
+                <h3 class="text-danger mb-0">1</h3>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card p-3 shadow-sm border-start border-primary border-4">
                 <small class="text-muted fw-bold d-block mb-1">Filtered Total Products Sold (Units)</small>
-                <h3 class="text-primary mb-0">{{ total_products_sold|default:"1" }} Units</h3>
+                <h3 class="text-primary mb-0">1 Units</h3>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card p-3 shadow-sm border-start border-warning border-4">
                 <small class="text-muted fw-bold d-block mb-1">Repeat Orders Counter (Units)</small>
-                <h3 class="text-warning mb-0">{{ repeat_orders_count|default:"0" }} Units</h3>
+                <h3 class="text-warning mb-0">0 Units</h3>
             </div>
         </div>
     </div>
 
     <div class="alert alert-info d-flex justify-content-between align-items-center py-2 px-3 shadow-sm mb-4 fs-6">
         <span><strong>0 Orders Selected</strong> for individual forwarding.</span>
-        <button class="btn btn-success btn-sm fw-bold" id="send-selected-btn">➔ Send Selected as Separate Messages</button>
+        <button class="btn btn-success btn-sm fw-bold">➔ Send Selected as Separate Messages</button>
     </div>
 
     <div class="card shadow-sm p-3 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0 fw-bold text-dark">Employee Performance Summary</h4>
-            <button onclick="exportTableToExcel('empPerformanceTable', 'Employee_Performance_Report')" class="btn btn-success btn-sm shadow-sm fw-bold">
+            <button onclick="exportTable('empPerformanceTable', 'Employee_Performance')" class="btn btn-success btn-sm fw-bold">
                 💾 Export Performance to Excel
             </button>
         </div>
@@ -77,18 +77,6 @@
                     </tr>
                 </thead>
                 <tbody class="small">
-                    {% for row in performance_data %}
-                    <tr>
-                        <td class="fw-bold text-dark">{{ row.emp_name }}</td>
-                        <td>{{ row.new_orders }}</td>
-                        <td>{{ row.repeat_orders }} Units</td>
-                        <td>{{ row.total_sold }} Units</td>
-                        <td>
-                            <input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="{{ row.ads_spent|default:'0' }}" style="width: 80px;" disabled>
-                        </td>
-                        <td class="fw-bold">₹{{ row.avg_cost }}</td>
-                    </tr>
-                    {% empty %}
                     <tr>
                         <td class="fw-bold text-dark">dummyemp</td>
                         <td>1</td>
@@ -97,7 +85,6 @@
                         <td><input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="0" style="width: 80px;" disabled></td>
                         <td class="fw-bold">₹0.00</td>
                     </tr>
-                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -106,7 +93,7 @@
     <div class="card shadow-sm p-3 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0 fw-bold text-dark">Master Order Log</h4>
-            <button onclick="exportTableToExcel('masterOrderLogTable', 'Master_Order_Log_Report')" class="btn btn-success btn-sm shadow-sm fw-bold">
+            <button onclick="exportTable('masterOrderLogTable', 'Master_Orders')" class="btn btn-success btn-sm fw-bold">
                 💾 Export Orders to Excel
             </button>
         </div>
@@ -125,22 +112,6 @@
                     </tr>
                 </thead>
                 <tbody class="small">
-                    {% for order in orders %}
-                    <tr>
-                        <td><input type="checkbox" class="form-check-input"></td>
-                        <td class="text-muted">{{ order.date|date:"d-m-Y" }}</td>
-                        <td><span class="badge bg-secondary px-2 py-1">{{ order.emp }}</span></td>
-                        <td class="fw-bold text-dark">{{ order.customer_name }} | {{ order.phone }}</td>
-                        <td class="text-muted text-truncate" style="max-width: 250px;">{{ order.address }}</td>
-                        <td>{{ order.items }}</td>
-                        <td class="fw-bold text-dark">₹{{ order.total }}</td>
-                        <td>
-                            <span class="badge bg-success px-2 py-1 me-1 text-uppercase">{{ order.status }}</span>
-                            <button class="btn btn-danger btn-xs py-0 px-1 text-white small" style="font-size: 11px;">Cancel</button>
-                            <button class="btn btn-emerald btn-xs py-0 px-1 text-white small bg-success" style="font-size: 11px;">WhatsApp</button>
-                        </td>
-                    </tr>
-                    {% empty %}
                     <tr class="table-success-light">
                         <td><input type="checkbox" class="form-check-input"></td>
                         <td class="text-muted">09-07-2026</td>
@@ -155,43 +126,32 @@
                             <button class="btn btn-emerald btn-xs py-0 px-1 text-white small bg-success" style="font-size: 11px;">WhatsApp</button>
                         </td>
                     </tr>
-                    {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-function exportTableToExcel(tableID, filename = '') {
+function exportTable(tableID, filename = '') {
     var tableSelect = document.getElementById(tableID);
-    if (!tableSelect) {
-        alert("Table not found!");
-        return;
-    }
+    var tableHTML = tableSelect.outerHTML.replace(/ /g, '%20');
     
-    var wb = XLSX.utils.table_to_book(tableSelect, {sheet: "CRM Data"});
-    var wbout = XLSX.write(wb, {bookType: 'xlsx', type: 'binary'});
-    
-    function s2ab(s) {
-        var buf = new ArrayBuffer(s.length);
-        var view = new Uint8Array(buf);
-        for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-        return buf;
-    }
-
-    var blob = new Blob([s2ab(wbout)], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
-    });
-    
-    filename = filename ? filename + '.xlsx' : 'CRM_Report.xlsx';
+    filename = filename ? filename + '.xls' : 'excel_data.xls';
     
     var downloadLink = document.createElement("a");
-    downloadLink.href = window.URL.createObjectURL(blob);
-    downloadLink.download = filename;
     document.body.appendChild(downloadLink);
-    downloadLink.click();
+    
+    if (navigator.msSaveOrOpenBlob) {
+        var blob = new Blob(['\ufeff' + tableHTML], {
+            type: 'application/vnd.ms-excel'
+        });
+        navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+        downloadLink.href = 'data:application/vnd.ms-excel,\ufeff' + tableHTML;
+        downloadLink.download = filename;
+        downloadLink.click();
+    }
     document.body.removeChild(downloadLink);
 }
 </script>
