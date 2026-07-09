@@ -1,5 +1,4 @@
 import sys
-# CRITICAL FIX FOR PYTHON 3.11+: Mock psycopg2 using the new psycopg binary BEFORE django loads
 try:
     import psycopg
     sys.modules['psycopg2'] = psycopg
@@ -58,19 +57,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 # =====================================================================
-# FIXED DATABASE ROUTING FOR POSTGRES LIVE_DATABASE_URL / DATABASE_URL
+# FAIL-SAFE ENVIRONMENT DATABASE PARSING WITH HARDCODED FALLBACK
 # =====================================================================
-db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=False)
+db_config = dj_database_url.config(conn_max_age=600, ssl_require=False)
 
-if db_from_env:
+if db_config:
     DATABASES = {
-        'default': db_from_env
+        'default': db_config
     }
 else:
+    # Dashboard variables fallback parsing
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'divjot_db',
+            'USER': 'divjot_db_user',
+            'PASSWORD': 'VR9Uoc7Xl4CrOPuhCOIHXykEuACOscoi',
+            'HOST': 'dpg-d97mpd3eo5us73a7tbb0-a',
+            'PORT': '5432',
         }
     }
 
