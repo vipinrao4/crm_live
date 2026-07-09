@@ -49,9 +49,10 @@
         .ads-input-field { width: 90px; padding: 5px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #ccc;}
         .logout-bar { text-align: right; margin-bottom: 10px; font-size: 14px;}
         
-        /* Bulk Action Bar Styling */
         .bulk-action-bar { background-color: #e1f5fe; border: 1px solid #b3e5fc; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .bulk-btn { background-color: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        
+        .repeat-badge-admin { background-color: #fff3cd; color: #856404; font-size: 11px; padding: 2px 6px; border-radius: 3px; font-weight: bold; display: inline-block; margin-top: 4px; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
@@ -92,11 +93,11 @@
         </div>
         <div class="stat-box blue-top">
             <div class="stat-label">Filtered Total Products Sold (Units)</div>
-            <div class="stat-val" style="color: #007bff;">{{ total_products_sold }}</div>
+            <div class="stat-val" style="color: #007bff;">{{ total_products_sold }} Units</div>
         </div>
         <div class="stat-box yellow-top">
-            <div class="stat-label">Repeat Orders Counter</div>
-            <div class="stat-val" style="color: #ffc107;">{{ repeat_orders_count }}</div>
+            <div class="stat-label">Repeat Orders Counter (Units)</div>
+            <div class="stat-val" style="color: #ffc107;">{{ repeat_orders_count }} Units</div>
         </div>
     </div>
 
@@ -165,14 +166,10 @@
                     <td>{{ log.date }}</td>
                     <td><span class="badge-all" style="background-color: #6c757d;">{{ log.emp }}</span></td>
                     <td>
-                        {{ log.customer_info }}
-                        {% if "Repeat" in log.whatsapp_text or "is_repeat" in log or log.whatsapp_text and "Order Type: Repeat" in log.whatsapp_text or "Repeat" in log.whatsapp_text %}
-                            {% endif %}
-                        {% for raw_o in master_orders_log %}
-                            {% if raw_o.id == log.id and "Repeat" in log.whatsapp_text %}
-                                <br><span style="background:#fff3cd; color:#856404; font-size:11px; padding:2px 6px; border-radius:3px; font-weight:bold; display:inline-block; margin-top:4px;">🔁 Repeat Order</span>
-                            {% endif %}
-                        {% endfor %}
+                        <strong>{{ log.customer_info }}</strong>
+                        {% if log.is_repeat_order %}
+                            <br><span class="repeat-badge-admin">🔁 Repeat Order</span>
+                        {% endif %}
                     </td>
                     <td>{{ log.full_address }}</td>
                     <td>{{ log.items_summary }}</td>
@@ -199,7 +196,6 @@
             document.getElementById('avg-cost-display-' + index).innerText = '₹' + avgCost.toFixed(2);
         }
 
-        // BULK SELECTION LOGIC
         function toggleSelectAll(masterBox) {
             let checkboxes = document.querySelectorAll('.order-checkbox');
             checkboxes.forEach(box => {
@@ -213,7 +209,6 @@
             document.getElementById('selected-count').innerText = checkedBoxes.length + " Orders Selected";
         }
 
-        // MULTIPLE SEPARATE TEXT MESSAGES LOOP LOGIC
         function sendMultipleTabsToWhatsApp() {
             let checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
             if (checkedBoxes.length === 0) {

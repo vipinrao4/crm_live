@@ -19,12 +19,8 @@ def get_clean_int_price(value):
 def dashboard(request):
     user = request.user
     
-    # -----------------------------------------------------------------
-    # FIXED: AJAX REPEAT CUSTOMER LOOKUP ENGINE FOR EMPLOYEE PORTAL
-    # -----------------------------------------------------------------
     if request.method == 'GET' and request.GET.get('search_phone_ajax'):
         target_phone = request.GET.get('search_phone_ajax').strip()
-        # Pure database me sabse latest order dhoondhenge is customer ka
         past_order = Order.objects.filter(Q(phone_1=target_phone) | Q(phone_2=target_phone)).order_by('-date').first()
         
         if past_order:
@@ -42,7 +38,6 @@ def dashboard(request):
             })
         return JsonResponse({'found': False})
 
-    # AJAX Status Update Handler for Admin Panel
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.method == 'POST':
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
@@ -54,9 +49,7 @@ def dashboard(request):
         except Order.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Order not found'})
 
-    # -----------------------------------------------------------------
     # ROUTE 1: MASTER ADMIN CONTROL
-    # -----------------------------------------------------------------
     if user.is_staff or user.is_superuser:
         raw_orders = Order.objects.all().order_by('-date')
         
@@ -72,12 +65,13 @@ def dashboard(request):
             
         total_orders_count = raw_orders.count()
         total_products_sold = 0
-        repeat_orders_count = 0
+        repeat_orders_units_total = 0
         
         for o in raw_orders:
-            total_products_sold += (getattr(o, 'product_1_count', 0) or 0) + (getattr(o, 'product_2_count', 0) or 0) + (getattr(o, 'product_3_count', 0) or 0)
+            current_order_units = (getattr(o, 'product_1_count', 0) or 0) + (getattr(o, 'product_2_count', 0) or 0) + (getattr(o, 'product_3_count', 0) or 0)
+            total_products_sold += current_order_units
             if getattr(o, 'order_type', 'New') == 'Repeat' or getattr(o, 'is_repeat', False):
-                repeat_orders_count += 1
+                repeat_orders_units_total += current_order_units
                 
         employees = User.objects.filter(is_staff=False)
         emp_summary = []
@@ -86,11 +80,12 @@ def dashboard(request):
             emp_p_count = 0
             emp_repeat_count = 0
             for eo in emp_orders:
-                emp_p_count += (getattr(eo, 'product_1_count', 0) or 0) + (getattr(eo, 'product_2_count', 0) or 0) + (getattr(eo, 'product_3_count', 0) or 0)
+                eo_units = (getattr(eo, 'product_1_count', 0) or 0) + (getattr(eo, 'product_2_count', 0) or 0) + (getattr(eo, 'product_3_count', 0) or 0)
+                emp_p_count += eo_units
                 if getattr(eo, 'order_type', 'New') == 'Repeat' or getattr(eo, 'is_repeat', False):
-                    emp_repeat_count += 1
+                    emp_repeat_count += eo_units
             
-            new_orders_units = emp_orders.count() - emp_repeat_count
+            new_orders_units = emp_orders.count() - emp_orders.filter(Q(order_type='Repeat') | Q(is_repeat=True)).count()
             
             emp_summary.append({
                 'username': emp.username,
@@ -112,6 +107,10 @@ def dashboard(request):
             items_desc = ", ".join([i.replace("* ", "") for i in items_list])
             whatsapp_items = "\n".join(items_list)
             
+            is_rep = False
+            if getattr(o, 'order_type', '') == 'Repeat' or getattr(o, 'is_repeat', False):
+                is_rep = True
+
             wa_text = (
                 f"Customer Name: {o.customer_name}\n"
                 f"Phone: {o.phone_1 or ''}{', ' + o.phone_2 if o.phone_2 else ''}\n"
@@ -138,12 +137,13 @@ def dashboard(request):
                 'status': o.status or "Pending",
                 'whatsapp_text': wa_text,
                 'primary_phone': o.phone_1,
+                'is_repeat_order': is_rep
             })
             
         context = {
             'total_orders_count': total_orders_count,
             'total_products_sold': total_products_sold,
-            'repeat_orders_count': repeat_orders_count,
+            'repeat_orders_count': repeat_orders_units_total,  # Ab yahan Total Units jayega
             'emp_summary': emp_summary,
             'master_orders_log': master_orders_log,
             'start_date': start_date,
@@ -155,9 +155,7 @@ def dashboard(request):
         except Exception:
             return render(request, 'crm_core/admin_control.html', context)
 
-    # -----------------------------------------------------------------
     # ROUTE 2: EMPLOYEE PORTAL
-    # -----------------------------------------------------------------
     if request.method == 'POST':
         customer_name = request.POST.get('name')
         phone_1 = (request.POST.get('phone_1') or '').replace(" ", "")[:10]
@@ -169,7 +167,6 @@ def dashboard(request):
         district = request.POST.get('district')
         state = request.POST.get('state')
         
-        # Extracted Form Input Value mapping for repeat check validation
         order_submitted_type = request.POST.get('order_type', 'New')
         
         p1_name = request.POST.get('product_1')
@@ -188,7 +185,6 @@ def dashboard(request):
         is_customer_repeat = (order_submitted_type == 'Repeat') or Order.objects.filter(phone_1=phone_1).exists()
 
         if phone_1:
-            # Model attributes dynamic saving block
             new_order = Order.objects.create(
                 employee=user,
                 customer_name=customer_name,
@@ -211,7 +207,6 @@ def dashboard(request):
                 date=datetime.now().date(),
                 status='Pending'
             )
-            # Agar dynamic field attribute model me exists karta hai toh use save karein
             if hasattr(new_order, 'order_type'):
                 new_order.order_type = order_submitted_type
                 new_order.save()
@@ -227,7 +222,6 @@ def dashboard(request):
 
     emp_orders_list = []
     for o in raw_emp_orders:
-        # Check order repeat configuration type smoothly
         resolved_type = "New"
         if getattr(o, 'order_type', '') == 'Repeat' or getattr(o, 'is_repeat', False):
             resolved_type = "Repeat"
