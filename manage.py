@@ -1,8 +1,13 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
 import os
 import sys
 
+# CRITICAL PYTHON 3.14 BOOTSTRAP PATCH: Force mock psycopg2 before django initializes
+try:
+    import psycopg
+    sys.modules['psycopg2'] = psycopg
+except ImportError:
+    pass
 
 def main():
     """Run administrative tasks."""
