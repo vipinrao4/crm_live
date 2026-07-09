@@ -5,8 +5,8 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Yeh framework directly standard registration format handle karega bina custom validation pange ke
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='crm_core/admin_control.html'), name='login'),
+    # Asli locked Django login mechanism
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='crm_core/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/accounts/login/'), name='logout'),
     
     path('', include('crm_core.urls')),

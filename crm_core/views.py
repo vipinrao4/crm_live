@@ -4,7 +4,6 @@ from .models import Order
 
 @login_required
 def dashboard(request):
-    # Aapka original working logic
     try:
         orders = Order.objects.all().order_by('-id')
         total_orders = orders.count()
