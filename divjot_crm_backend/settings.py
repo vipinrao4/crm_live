@@ -1,12 +1,3 @@
-import sys
-
-# PYTHON 3.14 ENVIRONMENT WORKAROUND FOR DJANGO 4.2
-try:
-    import psycopg
-    sys.modules['psycopg2'] = psycopg
-except ImportError:
-    pass
-
 import os
 from pathlib import Path
 
@@ -58,56 +49,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 # =====================================================================
-# SAFE RESTRUCTURED EXTRACTION FOR LIVE_DATABASE_URL
+# STANDARD DATABASE CONFIGURATION USING ENVIRONMENT VARIABLES
 # =====================================================================
-raw_url = os.environ.get('LIVE_DATABASE_URL', os.environ.get('DATABASE_URL', '')).strip()
-
-if raw_url and ('://' in raw_url):
-    try:
-        trimmed_url = raw_url.split('://')[1]
-        user_pass, host_db = trimmed_url.split('@')
-        user, password = user_pass.split(':')
-        
-        if '/' in host_db:
-            host_port, db_name = host_db.split('/')
-        else:
-            host_port, db_name = host_db, 'divjot_db'
-            
-        if ':' in host_port:
-            host, port = host_port.split(':')
-        else:
-            host, port = host_port, '5432'
-            
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': db_name,
-                'USER': user,
-                'PASSWORD': password,
-                'HOST': host,
-                'PORT': port,
-            }
-        }
-    except Exception:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': 'divjot_db',
-                'USER': 'divjot_db_user',
-                'PASSWORD': 'VR9Uoc7Xl4CrOPuhCOIHXykEuACOscoi',
-                'HOST': 'dpg-d97mpd3eo5us73a7tbb0-a',
-                'PORT': '5432',
-            }
-        }
-else:
+if os.environ.get('DB_NAME'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'divjot_db',
-            'USER': 'divjot_db_user',
-            'PASSWORD': 'VR9Uoc7Xl4CrOPuhCOIHXykEuACOscoi',
-            'HOST': 'dpg-d97mpd3eo5us73a7tbb0-a',
-            'PORT': '5432',
+            'NAME': os.environ.get('DB_NAME'),
+            'USER': os.environ.get('DB_USER'),
+            'PASSWORD': os.environ.get('DB_PASSWORD'),
+            'HOST': os.environ.get('DB_HOST'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
