@@ -18,5 +18,8 @@ def dashboard(request):
         'repeat_orders_count': 0,
     }
     
-    # Isko explicit app template path de rahe hain taaki Django turant dhoodh le!
-    return render(request, 'crm_core/admin_control.html', context)
+    # Pehle direct try karega, nahi toh background automatic settings handle karegi
+    try:
+        return render(request, 'admin_control.html', context)
+    except Exception:
+        return render(request, 'crm_core/admin_control.html', context)
