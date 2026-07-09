@@ -59,22 +59,22 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FIXED: 100% BULLETPROOF DATABASE CONFIGURATION BYPASS
+# FIXED: JAD SE KHATAM KISSA - NO MORE DJ_DATABASE_URL CRASH
 # =====================================================================
+# Agar Render par DATABASE_URL bilkul sahi format me milegi, tabhi hum use parse karenge, nahi toh seedhe backup chalega
 db_env_url = os.environ.get('DATABASE_URL', '').strip()
 
-# Agar Render par URL bilkul khali ('') milega toh library touch hi nahi hogi, seedhe sqlite chalega
-if not db_env_url:
+if db_env_url and db_env_url.startswith('postgres://'):
+    DATABASES = {
+        'default': dj_database_url.parse(db_env_url, conn_max_age=600)
+    }
+else:
+    # Render par agar variable nahi mil raha ya khali hai, toh crash hone ki jagah ye safe local chalega
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
-    }
-else:
-    # Agar link maujood hai, tabhi config load hoga
-    DATABASES = {
-        'default': dj_database_url.parse(db_env_url, conn_max_age=600)
     }
 
 
