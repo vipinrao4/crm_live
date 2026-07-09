@@ -1,11 +1,3 @@
-import sys
-# Python 3.14 bootstrap module connection injection
-try:
-    import psycopg
-    sys.modules['psycopg2'] = psycopg
-except ImportError:
-    pass
-
 import os
 from pathlib import Path
 import dj_database_url
@@ -57,20 +49,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
-# Automatic URL mapping injection
-db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=False)
-
-if db_from_env:
-    DATABASES = {
-        'default': db_from_env
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# =====================================================================
+# STANDARD EXTERNAL DATABASE URL PARSING
+# =====================================================================
+# Yeh automatic aapke External DATABASE_URL ko read karke connection bana dega
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=False
+    )
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
