@@ -58,14 +58,25 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# CLOUD DATABASE SETUP
+# FIXED: CLOUD DATABASE SETUP WITH STRICT EMPTY CHECK FOR FREE PLAN
 # =====================================================================
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}'),
-        conn_max_age=600
-    )
-}
+# Agar Environment variable khali ya galat hoga toh crash nahi hoga, local backup chalega
+db_env_url = os.environ.get('DATABASE_URL', '').strip()
+
+if not db_env_url:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=db_env_url,
+            conn_max_age=600
+        )
+    }
 
 
 # Password validation architecture
