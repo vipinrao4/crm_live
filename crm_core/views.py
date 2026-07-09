@@ -5,8 +5,6 @@ from django.apps import apps
 @login_required
 def admin_control_view(request):
     orders_list = []
-    
-    # Database se safe data nikalne ka tarika takki crash na ho
     try:
         OrderModel = apps.get_model('crm_core', 'Order')
         orders_list = OrderModel.objects.all().order_by('-id')
