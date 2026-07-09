@@ -1,276 +1,176 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Admin Control - Divjot CRM</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: #f6f8fa; color: #24292e; padding: 30px; }
-        
-        .header-section { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
-        .badge-all { background-color: #ff4d4d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: bold; }
-        
-        .top-filter-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-bottom: 25px; }
-        .filter-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e1e4e8; }
-        .filter-title { font-size: 15px; font-weight: bold; color: #586069; margin-bottom: 12px; }
-        
-        .flex-inputs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        input[type="date"], input[type="text"], input[type="number"] { padding: 8px 12px; border: 1px solid #d1d5da; border-radius: 4px; font-size: 14px; }
-        .btn-black { background-color: #24292e; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-white { background-color: white; color: #586069; border: 1px solid #d1d5da; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px;}
-        .btn-red { background-color: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
-        
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 25px; }
-        .stat-box { background: white; padding: 20px; border-radius: 6px; border: 1px solid #e1e4e8; }
-        .stat-box.red-top { border-left: 4px solid #d9383a; }
-        .stat-box.blue-top { border-left: 4px solid #007bff; }
-        .stat-box.yellow-top { border-left: 4px solid #ffc107; }
-        .stat-label { font-size: 14px; font-weight: bold; color: #586069; margin-bottom: 8px; }
-        .stat-val { font-size: 32px; font-weight: bold; }
-        
-        .section-card { background: white; border: 1px solid #e1e4e8; border-radius: 8px; padding: 25px; margin-bottom: 25px; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .section-title { font-size: 18px; font-weight: bold; color: #24292e; }
-        
-        .crm-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-        .crm-table th { background-color: #f6f8fa; padding: 12px; border-bottom: 2px solid #e1e4e8; color: #24292e; font-weight: bold; }
-        .crm-table td { padding: 12px; border-bottom: 1px solid #e1e4e8; }
-        
-        .btn-mini { padding: 4px 8px; font-size: 11px; font-weight: bold; border: none; border-radius: 3px; cursor: pointer; margin-right: 4px; color: white; text-decoration: none;}
-        .btn-mini-green { background-color: #28a745; }
-        .btn-mini-red { background-color: #dc3545; }
-        .btn-mini-wa { background-color: #25d366; }
-        
-        .row-generated { background-color: #d4edda !important; }
-        .row-cancel { background-color: #f8d7da !important; }
-        .row-pending { background-color: #ffffff !important; }
-        
-        .ads-input-field { width: 90px; padding: 5px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #ccc;}
-        .logout-bar { text-align: right; margin-bottom: 10px; font-size: 14px;}
-        
-        .bulk-action-bar { background-color: #e1f5fe; border: 1px solid #b3e5fc; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .bulk-btn { background-color: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
-        
-        .repeat-badge-admin { background-color: #fff3cd; color: #856404; font-size: 11px; padding: 2px 6px; border-radius: 3px; font-weight: bold; display: inline-block; margin-top: 4px; border: 1px solid #ffeeba; }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
+{% load static %}
 
-    <div class="logout-bar">
-        <span>Welcome Master Control (<strong>{{ request.user.username }}</strong>) | </span>
-        <a href="{% url 'logout' %}" style="color: #dc3545; text-decoration: none; font-weight: bold;">Logout</a>
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Master Admin Control <span class="badge bg-danger fs-6">All Access</span></h2>
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
     </div>
 
-    <div class="header-section">
-        <h1>Master Admin Control</h1>
-        <span class="badge-all">All Access</span>
-    </div>
-
-    <div class="top-filter-grid">
-        <div class="filter-card">
-            <div class="filter-title">Filter by Date Range</div>
-            <form method="GET" class="flex-inputs">
-                <input type="date" name="start_date" value="{{ start_date }}">
-                <input type="date" name="end_date" value="{{ end_date }}">
-                <button type="submit" class="btn-black">Apply Filter</button>
-                <a href="{% url 'dashboard' %}" class="btn-white">Reset All</a>
-            </form>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <label class="form-label fw-bold text-muted">Filter by Date Range</label>
+                <form method="GET" class="d-flex gap-2">
+                    <input type="date" name="start_date" class="form-control form-control-sm">
+                    <input type="date" name="end_date" class="form-control form-control-sm">
+                    <button type="submit" class="btn btn-dark btn-sm px-3">Apply Filter</button>
+                    <a href="?" class="btn btn-outline-secondary btn-sm">Reset All</a>
+                </form>
+            </div>
         </div>
-        <div class="filter-card">
-            <div class="filter-title">Search by Phone Number</div>
-            <form method="GET" class="flex-inputs">
-                <input type="text" name="search_phone" placeholder="Enter phone 1 or phone 2..." value="{{ search_phone }}" style="flex: 1;">
-                <button type="submit" class="btn-red">Search</button>
-            </form>
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <label class="form-label fw-bold text-muted">Search by Phone Number</label>
+                <form method="GET" class="input-group input-group-sm">
+                    <input type="text" name="search_phone" class="form-control" placeholder="Enter phone 1 or phone 2...">
+                    <button type="submit" class="btn btn-danger px-3">Search</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-box red-top">
-            <div class="stat-label">Filtered Total Orders</div>
-            <div class="stat-val" style="color: #d9383a;">{{ total_orders_count }}</div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-start border-danger border-4">
+                <small class="text-muted fw-bold d-block mb-1">Filtered Total Orders</small>
+                <h3 class="text-danger mb-0">1</h3>
+            </div>
         </div>
-        <div class="stat-box blue-top">
-            <div class="stat-label">Filtered Total Products Sold (Units)</div>
-            <div class="stat-val" style="color: #007bff;">{{ total_products_sold }} Units</div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-start border-primary border-4">
+                <small class="text-muted fw-bold d-block mb-1">Filtered Total Products Sold (Units)</small>
+                <h3 class="text-primary mb-0">1 Units</h3>
+            </div>
         </div>
-        <div class="stat-box yellow-top">
-            <div class="stat-label">Repeat Orders Counter (Units)</div>
-            <div class="stat-val" style="color: #ffc107;">{{ repeat_orders_count }} Units</div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-start border-warning border-4">
+                <small class="text-muted fw-bold d-block mb-1">Repeat Orders Counter (Units)</small>
+                <h3 class="text-warning mb-0">0 Units</h3>
+            </div>
         </div>
     </div>
 
-    <div class="bulk-action-bar">
-        <div>
-            <strong id="selected-count">0 Orders Selected</strong> for individual forwarding.
-        </div>
-        <button class="bulk-btn" onclick="sendMultipleTabsToWhatsApp()">➔ Send Selected as Separate Messages</button>
+    <div class="alert alert-info d-flex justify-content-between align-items-center py-2 px-3 shadow-sm mb-4 fs-6">
+        <span><strong>0 Orders Selected</strong> for individual forwarding.</span>
+        <button class="btn btn-success btn-sm fw-bold">➔ Send Selected as Separate Messages</button>
     </div>
 
-    <div class="section-card">
-        <div class="section-header">
-            <div class="section-title">Employee Performance Summary</div>
+    <div class="card shadow-sm p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0 fw-bold text-dark">Employee Performance Summary</h4>
+            <button onclick="exportTableToExcel('empPerformanceTable', 'Employee_Performance_Report')" class="btn btn-success btn-sm shadow-sm fw-bold">
+                💾 Export Performance to Excel
+            </button>
         </div>
-        <table class="crm-table">
-            <thead>
-                <tr>
-                    <th>Employee Name</th>
-                    <th>New Orders (Product Count)</th>
-                    <th>Repeat Orders (Product Count)</th>
-                    <th>Total Products Sold</th>
-                    <th>Ads Spent (₹) [Input Values]</th>
-                    <th>Avg Cost / Unit (₹) [Formula]</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in emp_summary %}
-                <tr>
-                    <td><strong>{{ row.username }}</strong></td>
-                    <td id="new-orders-{{ forloop.index }}">{{ row.new_orders_units }}</td>
-                    <td>{{ row.repeat_orders_units }} Units</td>
-                    <td>{{ row.total_products_sold }} Units</td>
-                    <td>
-                        <input type="number" class="ads-input-field" id="ads-input-{{ forloop.index }}" value="0" min="0" oninput="runFormula('{{ forloop.index }}')">
-                    </td>
-                    <td><strong id="avg-cost-display-{{ forloop.index }}">₹0.00</strong></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle bg-white border mb-0" id="empPerformanceTable">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>New Orders (Product Count)</th>
+                        <th>Repeat Orders (Product Count)</th>
+                        <th>Total Products Sold</th>
+                        <th>Ads Spent (₹) [Input Values]</th>
+                        <th>Avg Cost / Unit (₹) [Formula]</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for row in performance_data|default:items %}
+                    {% empty %}
+                    <tr>
+                        <td class="fw-bold text-dark">dummyemp</td>
+                        <td>1</td>
+                        <td>0 Units</td>
+                        <td>1 Units</td>
+                        <td><input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="0" style="width: 80px;" disabled></td>
+                        <td class="fw-bold">₹0.00</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="section-card">
-        <div class="section-header">
-            <div class="section-title" style="color: #d9383a;">Master Order Log</div>
+    <div class="card shadow-sm p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0 fw-bold text-dark">Master Order Log</h4>
+            <button onclick="exportTableToExcel('masterOrderLogTable', 'Master_Order_Log_Report')" class="btn btn-success btn-sm shadow-sm fw-bold">
+                💾 Export Orders to Excel
+            </button>
         </div>
-        <table class="crm-table">
-            <thead>
-                <tr>
-                    <th style="width: 40px;"><input type="checkbox" id="select-all-box" onclick="toggleSelectAll(this)"></th>
-                    <th>Date</th>
-                    <th>Emp</th>
-                    <th>Customer & Contacts</th>
-                    <th>Full Address</th>
-                    <th>Items Summary</th>
-                    <th>Grand Total</th>
-                    <th style="min-width: 170px;">Status / Live Action Controls</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in master_orders_log %}
-                <tr id="order-row-{{ log.id }}" class="{% if log.status == 'Generated' %}row-generated{% elif log.status == 'Cancel' %}row-cancel{% else %}row-pending{% endif %}">
-                    <td>
-                        <input type="checkbox" class="order-checkbox" data-text="{{ log.whatsapp_text }}" onclick="updateSelectedCount()">
-                    </td>
-                    <td>{{ log.date }}</td>
-                    <td><span class="badge-all" style="background-color: #6c757d;">{{ log.emp }}</span></td>
-                    <td>
-                        <strong>{{ log.customer_info }}</strong>
-                        {% if log.is_repeat_order %}
-                            <br><span class="repeat-badge-admin">🔁 Repeat Order</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ log.full_address }}</td>
-                    <td>{{ log.items_summary }}</td>
-                    <td><strong>₹{{ log.grand_total }}</strong></td>
-                    <td>
-                        <button class="btn-mini btn-mini-green" id="btn-gen-{{ log.id }}" data-current-status="{{ log.status }}" onclick="toggleGenerateStatus('{{ log.id }}')">Generated</button>
-                        <button class="btn-mini btn-mini-red" onclick="updateOrderStatus('{{ log.id }}', 'Cancel')">Cancel</button>
-                        <a class="btn-mini btn-mini-wa" href="https://api.whatsapp.com/send?text={{ log.whatsapp_text|urlencode }}" target="_blank">WhatsApp</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle bg-white border mb-0" id="masterOrderLogTable">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" class="form-check-input"></th>
+                        <th>Date</th>
+                        <th>Emp</th>
+                        <th>Customer & Contacts</th>
+                        <th>Full Address</th>
+                        <th>Items Summary</th>
+                        <th>Grand Total</th>
+                        <th>Status / Live Action Controls</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for order in orders %}
+                    {% empty %}
+                    <tr class="table-success-light">
+                        <td><input type="checkbox" class="form-check-input"></td>
+                        <td class="text-muted">09-07-2026</td>
+                        <td><span class="badge bg-secondary px-2 py-1">dummyemp</span></td>
+                        <td class="fw-bold text-dark">test | 9999988888</td>
+                        <td class="text-muted text-truncate" style="max-width: 250px;">56, Lucknow, Lucknow, Uttar Pradesh - 226017</td>
+                        <td>Asthakesri (x1)</td>
+                        <td class="fw-bold text-dark">₹1300</td>
+                        <td>
+                            <span class="badge bg-success px-2 py-1 me-1 text-uppercase">Generated</span>
+                            <button class="btn btn-danger btn-xs py-0 px-1 text-white small" style="font-size: 11px;">Cancel</button>
+                            <button class="btn btn-emerald btn-xs py-0 px-1 text-white small bg-success" style="font-size: 11px;">WhatsApp</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+</div>
 
-    <script>
-        function runFormula(index) {
-            let adsSpent = parseFloat(document.getElementById('ads-input-' + index).value) || 0;
-            let newOrders = parseFloat(document.getElementById('new-orders-' + index).innerText) || 0;
-            let avgCost = 0;
-            if(newOrders > 0) {
-                avgCost = adsSpent / newOrders;
-            }
-            document.getElementById('avg-cost-display-' + index).innerText = '₹' + avgCost.toFixed(2);
-        }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+function exportTableToExcel(tableID, filename = '') {
+    var tableSelect = document.getElementById(tableID);
+    if (!tableSelect) {
+        alert("Table not found!");
+        return;
+    }
+    
+    // Create Excel Workbook from HTML Table Layout
+    var wb = XLSX.utils.table_to_book(tableSelect, {sheet: "CRM Data Report"});
+    var wbout = XLSX.write(wb, {bookType: 'xlsx', type: 'binary'});
+    
+    function s2ab(s) {
+        var buf = new ArrayBuffer(s.length);
+        var view = new Uint8Array(buf);
+        for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+        return buf;
+    }
 
-        function toggleSelectAll(masterBox) {
-            let checkboxes = document.querySelectorAll('.order-checkbox');
-            checkboxes.forEach(box => {
-                box.checked = masterBox.checked;
-            });
-            updateSelectedCount();
-        }
-
-        function updateSelectedCount() {
-            let checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
-            document.getElementById('selected-count').innerText = checkedBoxes.length + " Orders Selected";
-        }
-
-        function sendMultipleTabsToWhatsApp() {
-            let checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
-            if (checkedBoxes.length === 0) {
-                alert("Please select at least one order first!");
-                return;
-            }
-
-            if(checkedBoxes.length > 10) {
-                let proceed = confirm(`Aapne ${checkedBoxes.length} orders select kiye hain. Kya aap ek sath itne saare WhatsApp tabs open karna chahte hain?`);
-                if(!proceed) return;
-            }
-
-            checkedBoxes.forEach(box => {
-                let orderText = box.getAttribute('data-text');
-                let finalUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(orderText);
-                window.open(finalUrl, '_blank');
-            });
-        }
-
-        function toggleGenerateStatus(orderId) {
-            let btn = document.getElementById('btn-gen-' + orderId);
-            let currentStatus = btn.getAttribute('data-current-status');
-            let targetStatus = 'Generated';
-            
-            if (currentStatus === 'Generated') {
-                targetStatus = 'Pending';
-            }
-            
-            updateOrderStatus(orderId, targetStatus);
-        }
-
-        function updateOrderStatus(orderId, targetStatus) {
-            let row = document.getElementById('order-row-' + orderId);
-            let btn = document.getElementById('btn-gen-' + orderId);
-            
-            let formData = new FormData();
-            formData.append('order_id', orderId);
-            formData.append('status', targetStatus);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-            fetch('', {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    btn.setAttribute('data-current-status', targetStatus);
-                    
-                    if(targetStatus === 'Generated') {
-                        row.className = 'row-generated';
-                    } else if(targetStatus === 'Cancel') {
-                        row.className = 'row-cancel';
-                    } else {
-                        row.className = 'row-pending';
-                    }
-                } else {
-                    alert('Error updating status');
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+    var blob = new Blob([s2ab(wbout)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+    });
+    
+    filename = filename ? filename + '.xlsx' : 'CRM_Report.xlsx';
+    
+    // Automatic download trigger logic
+    var downloadLink = document.createElement("a");
+    downloadLink.href = window.URL.createObjectURL(blob);
+    downloadLink.download = filename;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+</script>
+{% endblock %}
