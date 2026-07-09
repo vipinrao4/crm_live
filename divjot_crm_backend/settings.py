@@ -1,13 +1,6 @@
 import os
 from pathlib import Path
-import sys
-
-# Python 3.14 ke liye naye psycopg3 driver ko psycopg2 ke roop me register karne ka logic
-try:
-    import psycopg
-    sys.modules['psycopg2'] = psycopg
-except ImportError:
-    pass
+import dj_database_url
 
 # Project ka Base Directory path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -66,7 +59,7 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FINAL: EXPLICIT DIRECT VARIABLE MAPPING WITH FALLBACK
+# FINAL DATABASE PARSING CONFIGURATION
 # =====================================================================
 if os.environ.get('DB_NAME'):
     DATABASES = {
@@ -80,12 +73,23 @@ if os.environ.get('DB_NAME'):
         }
     }
 else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    # Agar Render par individual variables fass rahe hain toh direct cloud setup url backup lagayenge
+    db_url = os.environ.get('LIVE_DATABASE_URL', os.environ.get('DATABASE_URL', '')).strip()
+    if db_url:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=db_url,
+                engine='django.db.backends.postgresql',
+                conn_max_age=600
+            )
         }
-    }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Password validation architecture
