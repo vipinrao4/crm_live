@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import Order
 
-# Kisi bhi tarah ka HTML kachra yahan nahi hai.
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'customer_name', 'phone', 'total', 'date')
