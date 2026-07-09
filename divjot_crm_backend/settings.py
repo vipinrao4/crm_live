@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
+import sys
 
-# Naye driver ko Django ke sath compatible banane ke liye injector logic
+# Python 3.14 ke liye naye psycopg3 driver ko psycopg2 ke roop me register karne ka logic
 try:
     import psycopg
-    import sys
     sys.modules['psycopg2'] = psycopg
 except ImportError:
     pass
