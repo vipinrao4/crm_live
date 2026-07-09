@@ -1,6 +1,6 @@
 from django.urls import path
-from divjot_crm_backend.urls import simple_login_bypass
+from . import views
 
 urlpatterns = [
-    path('', simple_login_bypass, name='dashboard'),
+    path('', views.dashboard, name='dashboard'),
 ]
