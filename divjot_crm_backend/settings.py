@@ -5,13 +5,13 @@ import dj_database_url
 # Project ka Base Directory path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECRET KEY
+# SECRET KEY (Live deployment ke liye secure environment settings)
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-divjot-crm-master-key-777-vipindrao')
 
-# DEBUG MODE
+# DEBUG MODE (Render par live chalane ke liye False rahega, local par True)
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# ALLOWED HOSTS
+# ALLOWED HOSTS (Aapka Render link aur local host dono allowed hain)
 ALLOWED_HOSTS = ['crm-live-pyzh.onrender.com', 'localhost', '127.0.0.1', '.onrender.com']
 
 # Application definition
@@ -22,12 +22,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'crm_core',  
+    'crm_core',  # Main functional application app
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Static files ko Render par smooth chalane ke liye
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -36,7 +36,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# FIXED: divjot_crm se badal kar aapke folder ke mutabik divjot_crm_backend kar diya hai
 ROOT_URLCONF = 'divjot_crm_backend.urls'
 
 TEMPLATES = [
@@ -55,7 +54,6 @@ TEMPLATES = [
     },
 ]
 
-# FIXED: Isko bhi aapke original folder name par set kar diya hai
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
