@@ -4,11 +4,7 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # Yeh line sabse zaroori hai jo default login framework ko handle karegi
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
-    
-    # Aapka main dashboard routing
     path('', include('crm_core.urls')),
 ]
