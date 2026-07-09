@@ -1,17 +1,18 @@
 import os
 from pathlib import Path
+import dj_database_url
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Project ka Base Directory path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-divjot-crm-production-key-secured'
+# SECRET KEY (Live deployment ke liye ekdum secure environment settings)
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-divjot-crm-master-key-777-vipindrao')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG MODE (Render par live chalane ke liye False rahega, local par True)
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# ALLOWED HOSTS Fix (Yellow Screen/DisallowedHost Error Resolution)
-ALLOWED_HOSTS = ['crm-live-pyzh.onrender.com', '127.0.0.1', 'localhost']
+# ALLOWED HOSTS (Aapka Render link aur local host dono allowed hain)
+ALLOWED_HOSTS = ['crm-live-pyzh.onrender.com', 'localhost', '127.0.0.1', '.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -21,12 +22,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'crm_core',  # Hamari CRM app
+    'crm_core',  # Aapki main functional application app
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Static files handling on Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Static files ko Render par smooth chalane ke liye
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -35,17 +36,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'divjot_crm_backend.urls'
+ROOT_URLCONF = 'divjot_crm.urls'
 
-# MULTI-PATH TEMPLATES SETTING (TemplateDoesNotExist hamesha ke liye khatam karne ke liye)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),
-            os.path.join(BASE_DIR, 'crm_core', 'templates'),
-            os.path.join(BASE_DIR, 'crm_core', 'templates', 'crm_core'),
-        ],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Core templates path binding
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -58,47 +54,49 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
+WSGI_APPLICATION = 'divjot_crm.wsgi.application'
 
-# Database Setup
+
+# =====================================================================
+# FIXED: MASTER SQL (POSTGRESQL) CLOUD DATABASE SETUP
+# =====================================================================
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        # Render variable se URL uthayega, backup me aapka purana local SQLite chalega
+        default=os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}'),
+        conn_max_age=600
+    )
 }
 
-# Password validation
+
+# Password validation architecture
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-# Internationalization
+
+# Internationalization System Rules
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'  # India TimeZone Set Kiya Hai
+TIME_ZONE = 'Asia/Kolkata'  # India Standard Time configuration
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images) Setup for Production
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Authentication Redirects
+# URL redirects logic for employee logs
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+
+# Static files configuration rules (CSS, Images, JavaScript layout)
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Storage engines for production deployments
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
