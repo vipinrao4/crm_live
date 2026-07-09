@@ -58,44 +58,20 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FIXED: NO MORE DJ_DATABASE_URL LIBRARY - HAND-PARSED POSTGRES LOGIC
+# FIXED: EXPLICIT DIRECT VARIABLE MAPPING WITH FALLBACK
 # =====================================================================
-# Hum naya variable name use kar rahe hain taaki Render refresh ko force kare
-raw_url = os.environ.get('LIVE_DATABASE_URL', '').strip()
-
-if raw_url and ('://' in raw_url):
-    # postgresql://user:pass@host:port/dbname ko manually break kar rahe hain bina crash hue
-    try:
-        trimmed_url = raw_url.split('://')[1]
-        user_pass, host_db = trimmed_url.split('@')
-        user, password = user_pass.split(':')
-        host_port, db_name = host_db.split('/')
-        
-        if ':' in host_port:
-            host, port = host_port.split(':')
-        else:
-            host, port = host_port, '5432'
-            
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': db_name,
-                'USER': user,
-                'PASSWORD': password,
-                'HOST': host,
-                'PORT': port,
-            }
+if os.environ.get('DB_NAME'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME'),
+            'USER': os.environ.get('DB_USER'),
+            'PASSWORD': os.environ.get('DB_PASSWORD'),
+            'HOST': os.environ.get('DB_HOST'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
         }
-    except Exception:
-        # Agar kuch bhi galat ho toh crash nahi hoga, backup chalega
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    }
 else:
-    # Local fallback
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
