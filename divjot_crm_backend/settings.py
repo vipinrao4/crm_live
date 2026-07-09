@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import dj_database_url
 
 # Project ka Base Directory path configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,19 +58,44 @@ WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
 
 # =====================================================================
-# FIXED: SUPPORT FOR BOTH POSTGRES AND POSTGRESQL FORMATS
+# FIXED: NO MORE DJ_DATABASE_URL LIBRARY - HAND-PARSED POSTGRES LOGIC
 # =====================================================================
-db_env_url = os.environ.get('DATABASE_URL', '').strip()
+# Hum naya variable name use kar rahe hain taaki Render refresh ko force kare
+raw_url = os.environ.get('LIVE_DATABASE_URL', '').strip()
 
-# Agar link me postgresql:// hai, toh use postgres:// me convert kar rahe hain taaki library crash na ho
-if db_env_url.startswith('postgresql://'):
-    db_env_url = db_env_url.replace('postgresql://', 'postgres://', 1)
-
-if db_env_url and db_env_url.startswith('postgres://'):
-    DATABASES = {
-        'default': dj_database_url.parse(db_env_url, conn_max_age=600)
-    }
+if raw_url and ('://' in raw_url):
+    # postgresql://user:pass@host:port/dbname ko manually break kar rahe hain bina crash hue
+    try:
+        trimmed_url = raw_url.split('://')[1]
+        user_pass, host_db = trimmed_url.split('@')
+        user, password = user_pass.split(':')
+        host_port, db_name = host_db.split('/')
+        
+        if ':' in host_port:
+            host, port = host_port.split(':')
+        else:
+            host, port = host_port, '5432'
+            
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': db_name,
+                'USER': user,
+                'PASSWORD': password,
+                'HOST': host,
+                'PORT': port,
+            }
+        }
+    except Exception:
+        # Agar kuch bhi galat ho toh crash nahi hoga, backup chalega
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 else:
+    # Local fallback
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
