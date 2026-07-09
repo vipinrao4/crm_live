@@ -3,11 +3,13 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <!-- MASTER HEAD -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Master Admin Control <span class="badge bg-danger fs-6">All Access</span></h2>
         <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
     </div>
 
+    <!-- FILTERS AND SEARCH SECTION -->
     <div class="row g-3 mb-4">
         <div class="col-md-6">
             <div class="card p-3 shadow-sm">
@@ -31,6 +33,7 @@
         </div>
     </div>
 
+    <!-- COUNTER CARDS -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card p-3 shadow-sm border-start border-danger border-4">
@@ -52,11 +55,13 @@
         </div>
     </div>
 
+    <!-- ACTION NOTICE -->
     <div class="alert alert-info d-flex justify-content-between align-items-center py-2 px-3 shadow-sm mb-4 fs-6">
         <span><strong>0 Orders Selected</strong> for individual forwarding.</span>
         <button class="btn btn-success btn-sm fw-bold">➔ Send Selected as Separate Messages</button>
     </div>
 
+    <!-- SECTION 1: EMPLOYEE PERFORMANCE SUMMARY -->
     <div class="card shadow-sm p-3 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0 fw-bold text-dark">Employee Performance Summary</h4>
@@ -77,22 +82,33 @@
                     </tr>
                 </thead>
                 <tbody class="small">
-                    {% for row in performance_data|default:items %}
-                    {% empty %}
-                    <tr>
-                        <td class="fw-bold text-dark">dummyemp</td>
-                        <td>1</td>
-                        <td>0 Units</td>
-                        <td>1 Units</td>
-                        <td><input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="0" style="width: 80px;" disabled></td>
-                        <td class="fw-bold">₹0.00</td>
-                    </tr>
-                    {% endfor %}
+                    {% if performance_data %}
+                        {% for row in performance_data %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ row.emp_name|default:"dummyemp" }}</td>
+                            <td>{{ row.new_orders|default:"0" }}</td>
+                            <td>{{ row.repeat_orders|default:"0" }} Units</td>
+                            <td>{{ row.total_sold|default:"0" }} Units</td>
+                            <td><input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="{{ row.ads_spent|default:'0' }}" style="width: 80px;" disabled></td>
+                            <td class="fw-bold">₹{{ row.avg_cost|default:"0.00" }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td class="fw-bold text-dark">dummyemp</td>
+                            <td>1</td>
+                            <td>0 Units</td>
+                            <td>1 Units</td>
+                            <td><input type="number" class="form-control form-control-sm d-inline-block text-center bg-light border-0" value="0" style="width: 80px;" disabled></td>
+                            <td class="fw-bold">₹0.00</td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- SECTION 2: MASTER ORDER LOG -->
     <div class="card shadow-sm p-3 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0 fw-bold text-dark">Master Order Log</h4>
@@ -115,29 +131,46 @@
                     </tr>
                 </thead>
                 <tbody class="small">
-                    {% for order in orders %}
-                    {% empty %}
-                    <tr class="table-success-light">
-                        <td><input type="checkbox" class="form-check-input"></td>
-                        <td class="text-muted">09-07-2026</td>
-                        <td><span class="badge bg-secondary px-2 py-1">dummyemp</span></td>
-                        <td class="fw-bold text-dark">test | 9999988888</td>
-                        <td class="text-muted text-truncate" style="max-width: 250px;">56, Lucknow, Lucknow, Uttar Pradesh - 226017</td>
-                        <td>Asthakesri (x1)</td>
-                        <td class="fw-bold text-dark">₹1300</td>
-                        <td>
-                            <span class="badge bg-success px-2 py-1 me-1 text-uppercase">Generated</span>
-                            <button class="btn btn-danger btn-xs py-0 px-1 text-white small" style="font-size: 11px;">Cancel</button>
-                            <button class="btn btn-emerald btn-xs py-0 px-1 text-white small bg-success" style="font-size: 11px;">WhatsApp</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    {% if orders %}
+                        {% for order in orders %}
+                        <tr>
+                            <td><input type="checkbox" class="form-check-input"></td>
+                            <td class="text-muted">{{ order.date|date:"d-m-Y" }}</td>
+                            <td><span class="badge bg-secondary px-2 py-1">{{ order.emp }}</span></td>
+                            <td class="fw-bold text-dark">{{ order.customer_name }} | {{ order.phone }}</td>
+                            <td class="text-muted text-truncate" style="max-width: 250px;">{{ order.address }}</td>
+                            <td>{{ order.items }}</td>
+                            <td class="fw-bold text-dark">₹{{ order.total }}</td>
+                            <td>
+                                <span class="badge bg-success px-2 py-1 me-1 text-uppercase">{{ order.status }}</span>
+                                <button class="btn btn-danger btn-xs py-0 px-1 text-white small" style="font-size: 11px;">Cancel</button>
+                                <button class="btn btn-emerald btn-xs py-0 px-1 text-white small bg-success" style="font-size: 11px;">WhatsApp</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="table-success-light">
+                            <td><input type="checkbox" class="form-check-input"></td>
+                            <td class="text-muted">09-07-2026</td>
+                            <td><span class="badge bg-secondary px-2 py-1">dummyemp</span></td>
+                            <td class="fw-bold text-dark">test | 9999988888</td>
+                            <td class="text-muted text-truncate" style="max-width: 250px;">56, Lucknow, Lucknow, Uttar Pradesh - 226017</td>
+                            <td>Asthakesri (x1)</td>
+                            <td class="fw-bold text-dark">₹1300</td>
+                            <td>
+                                <span class="badge bg-success px-2 py-1 me-1 text-uppercase">Generated</span>
+                                <button class="btn btn-danger btn-xs py-0 px-1 text-white small" style="font-size: 11px;">Cancel</button>
+                                <button class="btn btn-emerald btn-xs py-0 px-1 text-white small bg-success" style="font-size: 11px;">WhatsApp</button>
+                            </td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
+<!-- FAIL-SAFE EXCEL EXPORT ENGINE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 function exportTableToExcel(tableID, filename = '') {
@@ -147,7 +180,6 @@ function exportTableToExcel(tableID, filename = '') {
         return;
     }
     
-    // Create Excel Workbook from HTML Table Layout
     var wb = XLSX.utils.table_to_book(tableSelect, {sheet: "CRM Data Report"});
     var wbout = XLSX.write(wb, {bookType: 'xlsx', type: 'binary'});
     
@@ -164,7 +196,6 @@ function exportTableToExcel(tableID, filename = '') {
     
     filename = filename ? filename + '.xlsx' : 'CRM_Report.xlsx';
     
-    // Automatic download trigger logic
     var downloadLink = document.createElement("a");
     downloadLink.href = window.URL.createObjectURL(blob);
     downloadLink.download = filename;
