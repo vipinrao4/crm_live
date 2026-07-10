@@ -30,17 +30,41 @@ def dashboard(request):
     phone_counts = Counter(raw_phone_pool)
     
     repeat_counter = 0
+    parsed_orders = []
+    
     for order in orders:
         p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
+        a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
+        i_val = getattr(order, 'items', getattr(order, 'products', 'No Product Data'))
+        t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
+        
+        is_repeat = False
         if p_val:
             for segment in p_val.split('/'):
                 seg_clean = segment.strip()
                 if seg_clean and phone_counts[seg_clean] > 1:
-                    repeat_counter += 1
+                    is_repeat = True
                     break
+        
+        if is_repeat:
+            repeat_counter += 1
+
+        # Binding pure python primitives safely to bypass model attributes template rendering crashes
+        parsed_orders.append({
+            'id': order.id,
+            'date': order.date if hasattr(order, 'date') else None,
+            'emp': getattr(order, 'emp', getattr(order, 'employee', 'System')),
+            'customer_name': order.customer_name,
+            'phone': p_val,
+            'address': a_val,
+            'items': i_val,
+            'total': t_val,
+            'status': order.status,
+            'is_repeat': is_repeat
+        })
 
     context = {
-        'orders': orders,
+        'orders': parsed_orders,
         'total_orders': total_orders,
         'total_products_sold': total_orders,
         'repeat_orders_count': repeat_counter,

@@ -8,7 +8,7 @@
     <style>
         body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         .card { border: none; border-radius: 10px; }
-        .btn-xs { padding: 2px 6px; font-size: 11px; font-bold: true; }
+        .btn-xs { padding: 2px 6px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -19,7 +19,6 @@
         <a href="/accounts/logout/" class="btn btn-outline-danger btn-sm fw-bold">Logout</a>
     </div>
 
-    <!-- COUNTER METRICS -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card p-3 shadow-sm bg-white border-start border-danger border-4">
@@ -30,7 +29,7 @@
         <div class="col-md-4">
             <div class="card p-3 shadow-sm bg-white border-start border-primary border-4">
                 <small class="text-muted fw-bold d-block mb-1 text-uppercase small" style="font-size: 11px;">Total Sales Volume</small>
-                <h3 class="text-primary mb-0 fw-bold">₹{{ total_orders }}</h3>
+                <h3 class="text-primary mb-0 fw-bold">₹{{ total_products_sold }}</h3>
             </div>
         </div>
         <div class="col-md-4">
@@ -41,7 +40,6 @@
         </div>
     </div>
 
-    <!-- MASTER ORDER LOG DATABASE -->
     <div class="card shadow-sm p-4 bg-white">
         <div class="mb-3 border-bottom pb-2">
             <h5 class="mb-0 fw-bold text-dark">Master Order Log Database</h5>
@@ -66,11 +64,11 @@
                         <td><span class="badge bg-secondary px-2 py-1">{{ order.emp|default:"System" }}</span></td>
                         <td>
                             <b>{{ order.customer_name }}</b><br>
-                            <small class="text-muted">{{ order.phone|default:order.customer_phone }}</small>
+                            <small class="text-muted">{{ order.phone }}</small>
                         </td>
-                        <td class="text-wrap" style="max-width: 250px; font-size: 12px;">{{ order.address|default:order.customer_address }}</td>
-                        <td><span class="fw-semibold text-secondary">{{ order.items|default:"No Product Data" }}</span></td>
-                        <td class="fw-bold text-dark">₹{{ order.total|default:order.grand_total|default:"0" }}</td>
+                        <td class="text-wrap" style="max-width: 250px; font-size: 12px;">{{ order.address }}</td>
+                        <td><span class="fw-semibold text-secondary">{{ order.items }}</span></td>
+                        <td class="fw-bold text-dark">₹{{ order.total }}</td>
                         <td>
                             <div class="mb-2">
                                 {% if order.status == 'Pending' %}
@@ -80,17 +78,18 @@
                                 {% else %}
                                     <span class="badge bg-danger text-uppercase">Cancelled</span>
                                 {% endif %}
+                                {% if order.is_repeat %}
+                                    <br><span class="badge bg-warning text-dark text-uppercase fw-bold mt-1" style="font-size:10px;">⚠️ REPEAT</span>
+                                {% endif %}
                             </div>
                             
-                            <!-- Form submission path dynamically fixed to custom route -->
                             <form method="POST" action="/update-status/{{ order.id }}/" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" name="status" value="Generated" class="btn btn-success btn-xs text-white fw-bold me-1" style="background-color: #198754;">Generate</button>
                                 <button type="submit" name="status" value="Cancelled" class="btn btn-danger btn-xs text-white fw-bold me-1" style="background-color: #dc3545;">Cancel</button>
                             </form>
                             
-                            <!-- WhatsApp Dynamic Message API Integration Layout Fixed -->
-                            <a href="https://api.whatsapp.com/send?phone=91{{ order.phone|default:order.customer_phone }}&text=Hello%20*{{ order.customer_name }}*,%20Divjot%20Ayurveda%20se%20aapka%20order%20confirm%20ho%20gaya%20hai.%20%0A%0A*Products:*%20{{ order.items }}%0A*Total%20Amount:*%20%E2%82%B9{{ order.total }}%0A*Address:*%20{{ order.address }}%0A%0AThank%20You!" target="_blank" class="btn btn-dark btn-xs text-white fw-bold" style="background-color: #25D366; border: none;">WhatsApp</a>
+                            <a href="https://api.whatsapp.com/send?phone=91{{ order.phone }}&text=Hello%20*{{ order.customer_name }}*,%20Divjot%20Ayurveda%20se%20aapka%20order%20confirm%20ho%20gaya%20hai.%20%0A%0A*Products:*%20{{ order.items }}%0A*Total%20Amount:*%20%E2%82%B9{{ order.total }}%0A*Address:*%20{{ order.address }}%0A%0AThank%20You!" target="_blank" class="btn btn-dark btn-xs text-white fw-bold" style="background-color: #25D366; border: none;">WhatsApp</a>
                         </td>
                     </tr>
                     {% empty %}
