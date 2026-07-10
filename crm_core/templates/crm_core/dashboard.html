@@ -16,16 +16,20 @@
         .table th { background-color: #2c3e50; color: white; border-bottom: none; }
         .btn-custom { border-radius: 8px; font-weight: 500; }
         .form-control, .form-select { border-radius: 8px; border: 1px solid #ced4da; }
-        .form-control:focus, .form-select:focus { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15); }
     </style>
 </head>
 <body>
     <div class="container-fluid mt-4 px-4">
+        <!-- Top Header & Date Range -->
         <div class="d-flex justify-content-between mb-4 align-items-center bg-white p-3 shadow-sm rounded-4">
             <h4 class="text-primary fw-bold m-0" style="background: -webkit-linear-gradient(#0d6efd, #0dcaf0); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                 Hi, {{ request.user.username|title }} 👋
             </h4>
             <div class="d-flex gap-3 align-items-center">
+                <!-- INACTIVE LEADS MODAL BUTTON -->
+                <button class="btn btn-sm btn-warning btn-custom px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#inactiveModal">
+                    Inactive Leads ({{ inactive_list|length }})
+                </button>
                 <form class="d-flex gap-2 align-items-center m-0">
                     <span class="fw-medium small text-muted">From:</span>
                     <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
@@ -37,6 +41,7 @@
             </div>
         </div>
 
+        <!-- 4 Cards -->
         <div class="row mb-4 text-center">
             <div class="col-md-3 col-6 mb-3"><div class="card stat-card stat-primary p-3 h-100"><h6 class="text-muted mb-2">New Orders</h6><h2 class="text-primary fw-bold mb-0">{{ new_ord_count }}</h2></div></div>
             <div class="col-md-3 col-6 mb-3"><div class="card stat-card stat-warning p-3 h-100"><h6 class="text-muted mb-2">Repeat Orders</h6><h2 class="text-warning fw-bold mb-0">{{ rep_ord_count }}</h2></div></div>
@@ -45,6 +50,7 @@
         </div>
 
         <div class="row">
+            <!-- PUNCH FORM -->
             <div class="col-lg-5 mb-4">
                 <div class="card p-4">
                     <h5 class="fw-bold mb-4 text-dark">Punch New Order</h5>
@@ -81,9 +87,7 @@
                             <input type="text" name="district" id="district" class="form-control bg-light form-control-sm" placeholder="District">
                             <input type="text" name="state" id="state" class="form-control bg-light form-control-sm" placeholder="State">
                         </div>
-
                         <hr class="text-muted">
-
                         <h6 class="fw-bold text-dark mb-3">Add Products</h6>
                         <div id="product-rows"></div>
                         <button type="button" class="btn btn-sm btn-outline-primary btn-custom mb-4 px-3" onclick="addProductRow()">+ Add Another Product</button>
@@ -96,15 +100,15 @@
                             <h6 class="m-0 fw-medium">Grand Total</h6>
                             <h4 class="m-0 fw-bold">₹ <span id="grandTotalDisplay">0</span></h4>
                         </div>
-                        
                         <button type="submit" class="btn btn-primary btn-custom w-100 py-2 fs-5" onclick="return prepareSubmit(this)">Submit Final Order</button>
                     </form>
                 </div>
             </div>
 
+            <!-- ORDER LIST -->
             <div class="col-lg-7">
                 <div class="card p-4">
-                    <h5 class="fw-bold mb-4 text-dark">Today's Submissions</h5>
+                    <h5 class="fw-bold mb-4 text-dark">Filtered Submissions</h5>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle text-center" style="font-size: 14px;">
                             <thead class="table-dark rounded-top">
@@ -133,8 +137,42 @@
         </div>
     </div>
 
+    <!-- INACTIVE CUSTOMERS MODAL -->
+    <div class="modal fade" id="inactiveModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title fw-bold text-dark">Inactive Leads (30+ Days)</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small">Ye wo customers hain jinka pichle 30 din ya usse zyada se koi order nahi laga hai.</p>
+            <table class="table table-sm table-bordered text-center">
+                <thead class="table-light"><tr><th>Customer Name</th><th>Phone</th><th>Last Order</th></tr></thead>
+                <tbody>
+                    {% for c in inactive_list %}
+                    <tr><td class="fw-bold">{{ c.name }}</td><td>{{ c.phone }}</td><td class="text-danger">{{ c.date }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-success fw-bold">Sabhi purane customers ka order lag chuka hai!</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-custom" data-bs-dismiss="modal">Close</button>
+            {% if inactive_list %}
+            <button type="button" class="btn btn-success btn-custom fw-bold" onclick="sendInactiveWA()"><i class="bi bi-whatsapp"></i> Send List to WhatsApp</button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- REQUIRED BOOTSTRAP JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-    // JS Logic Same as Before
+    // Existing Script Logic
     const productsList = ['Asthakesri', 'Immunity booster', 'Pain tablet', 'Pain Oil', 'Gastro', 'Onion Oil'];
     let rowCount = 0;
     
@@ -162,10 +200,7 @@
             let n = r.querySelector('.p-name').value;
             let q = parseInt(r.querySelector('.p-qty').value) || 0;
             let p = parseInt(r.querySelector('.p-price').value) || 0;
-            if(n && q > 0) {
-                totalVal += p; totalBottles += q;
-                summary.push(`${n} (x${q})`);
-            }
+            if(n && q > 0) { totalVal += p; totalBottles += q; summary.push(`${n} (x${q})`); }
         });
         document.getElementById('grandTotalDisplay').innerText = totalVal;
         document.getElementById('grand_total').value = totalVal;
@@ -175,12 +210,8 @@
 
     function prepareSubmit(btn) { 
         calc(); 
-        if(document.getElementById('grand_total').value == "0") {
-            alert("Please add at least one product with price!");
-            return false;
-        }
-        btn.innerHTML = "Submitting Order...";
-        return true; 
+        if(document.getElementById('grand_total').value == "0") { alert("Please add at least one product with price!"); return false; }
+        btn.innerHTML = "Submitting Order..."; return true; 
     }
 
     function fetchPincode(selectedPo = null) {
@@ -209,34 +240,29 @@
         fetch(`/employee/dashboard/?action=search_phone&phone=${ph}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
         .then(r=>r.json()).then(d=>{
             if(d.status === 'success'){
-                document.getElementById('c_name').value = d.data.name;
-                document.getElementById('phone1').value = d.data.phone1;
-                document.getElementById('phone2').value = d.data.phone2;
-                document.getElementById('address').value = d.data.address;
-                document.getElementById('pincode').value = d.data.pincode;
+                document.getElementById('c_name').value = d.data.name; document.getElementById('phone1').value = d.data.phone1; document.getElementById('phone2').value = d.data.phone2; document.getElementById('address').value = d.data.address; document.getElementById('pincode').value = d.data.pincode;
                 document.getElementById('post_office').innerHTML = `<option value="${d.data.post_office}" selected>${d.data.post_office}</option>`;
                 fetchPincode(d.data.post_office); 
-                document.getElementById('tehsil').value = d.data.tehsil;
-                document.getElementById('district').value = d.data.district;
-                document.getElementById('state').value = d.data.state;
+                document.getElementById('tehsil').value = d.data.tehsil; document.getElementById('district').value = d.data.district; document.getElementById('state').value = d.data.state;
                 document.getElementById('lastOrderMsg').innerHTML = `Customer Found! Last Order: <b>${d.data.last_date}</b>`;
             } else { alert("New Customer! No old data found."); }
         });
     }
 
     function editOrder(id, name, p1, p2, add, pin, po, teh, dist, st) {
-        document.getElementById('form_order_id').value = id;
-        document.getElementById('c_name').value = name;
-        document.getElementById('phone1').value = p1;
-        document.getElementById('phone2').value = p2;
-        document.getElementById('address').value = add;
-        document.getElementById('pincode').value = pin;
-        document.getElementById('post_office').innerHTML = `<option value="${po}" selected>${po}</option>`;
-        fetchPincode(po);
-        document.getElementById('tehsil').value = teh;
-        document.getElementById('district').value = dist;
-        document.getElementById('state').value = st;
+        document.getElementById('form_order_id').value = id; document.getElementById('c_name').value = name; document.getElementById('phone1').value = p1; document.getElementById('phone2').value = p2; document.getElementById('address').value = add; document.getElementById('pincode').value = pin;
+        document.getElementById('post_office').innerHTML = `<option value="${po}" selected>${po}</option>`; fetchPincode(po);
+        document.getElementById('tehsil').value = teh; document.getElementById('district').value = dist; document.getElementById('state').value = st;
         document.getElementById('lastOrderMsg').innerText = "Editing Order... Please resubmit products.";
+    }
+
+    // WHATSAPP INACTIVE LIST SENDER
+    function sendInactiveWA() {
+        let text = "🚨 *My Pending Follow-ups (30+ Days)* 🚨\n\n";
+        {% for c in inactive_list %}
+        text += "👤 Name: {{ c.name }}\n📞 Phone: {{ c.phone }}\n📅 Last Order: {{ c.date }}\n-------------------\n";
+        {% endfor %}
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
 </script>
 </body>

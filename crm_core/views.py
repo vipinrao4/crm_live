@@ -4,7 +4,8 @@ from django.contrib.auth import authenticate, login as django_login, logout as d
 from django.http import JsonResponse
 from .models import Order
 from django.db.models import Q
-from datetime import datetime
+from django.utils import timezone
+from datetime import timedelta, datetime
 
 def is_admin(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
@@ -32,7 +33,6 @@ def custom_login(request):
             
     return render(request, 'crm_core/login.html', {'error': error_msg})
 
-# NAYA LOGOUT FUNCTION
 def custom_logout(request):
     django_logout(request)
     return redirect('/accounts/login/')
@@ -86,14 +86,32 @@ def emp_dashboard_view(request):
     
     my_orders = Order.objects.filter(emp=request.user.username).order_by('-id')
     if start_date and end_date:
-        my_orders = my_orders.filter(date__date__gte=start_date, date__date__lte=end_date)
+        filtered_orders = my_orders.filter(date__date__gte=start_date, date__date__lte=end_date)
+    else:
+        filtered_orders = my_orders
+
+    # 30 DAYS INACTIVE LOGIC
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    latest_emp_orders = {}
+    for o in my_orders:
+        if o.phone1 not in latest_emp_orders:
+            latest_emp_orders[o.phone1] = o
+            
+    inactive_list = []
+    for phone, o in latest_emp_orders.items():
+        if o.date < thirty_days_ago:
+            inactive_list.append({
+                'name': o.customer_name, 'phone': o.phone1, 
+                'date': o.date.strftime('%d %b %Y')
+            })
     
     ctx = {
-        'orders': my_orders, 'start_date': start_date, 'end_date': end_date,
-        'new_ord_count': my_orders.filter(is_repeat=False).count(),
-        'rep_ord_count': my_orders.filter(is_repeat=True).count(),
-        'new_bot_count': sum(o.total_bottles for o in my_orders if not o.is_repeat),
-        'rep_bot_count': sum(o.total_bottles for o in my_orders if o.is_repeat),
+        'orders': filtered_orders, 'start_date': start_date, 'end_date': end_date,
+        'new_ord_count': filtered_orders.filter(is_repeat=False).count(),
+        'rep_ord_count': filtered_orders.filter(is_repeat=True).count(),
+        'new_bot_count': sum(o.total_bottles for o in filtered_orders if not o.is_repeat),
+        'rep_bot_count': sum(o.total_bottles for o in filtered_orders if o.is_repeat),
+        'inactive_list': inactive_list, # Send to Template
     }
     return render(request, 'crm_core/dashboard.html', ctx)
 
@@ -105,26 +123,43 @@ def dashboard(request):
     search_q = request.GET.get('search', '')
 
     orders = Order.objects.all().order_by('-id')
+    filtered_orders = orders
     
     if search_q:
-        orders = orders.filter(Q(phone1__icontains=search_q) | Q(phone2__icontains=search_q))
+        filtered_orders = orders.filter(Q(phone1__icontains=search_q) | Q(phone2__icontains=search_q))
     elif start_date and end_date:
-        orders = orders.filter(date__date__gte=start_date, date__date__lte=end_date)
+        filtered_orders = orders.filter(date__date__gte=start_date, date__date__lte=end_date)
 
     agent_data = {}
-    for o in orders:
+    for o in filtered_orders:
         if o.emp not in agent_data:
             agent_data[o.emp] = {'new_b': 0, 'rep_b': 0}
         if o.is_repeat: agent_data[o.emp]['rep_b'] += o.total_bottles
         else: agent_data[o.emp]['new_b'] += o.total_bottles
 
+    # 30 DAYS INACTIVE LOGIC (ADMIN)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    latest_admin_orders = {}
+    for o in orders:
+        if o.phone1 not in latest_admin_orders:
+            latest_admin_orders[o.phone1] = o
+            
+    inactive_list = []
+    for phone, o in latest_admin_orders.items():
+        if o.date < thirty_days_ago:
+            inactive_list.append({
+                'emp': o.emp, 'name': o.customer_name, 
+                'phone': o.phone1, 'date': o.date.strftime('%d %b %Y')
+            })
+
     ctx = {
-        'orders': orders, 'start_date': start_date, 'end_date': end_date, 'search_q': search_q,
-        'tot_new_ord': orders.filter(is_repeat=False).count(),
-        'tot_rep_ord': orders.filter(is_repeat=True).count(),
-        'tot_new_bot': sum(o.total_bottles for o in orders if not o.is_repeat),
-        'tot_rep_bot': sum(o.total_bottles for o in orders if o.is_repeat),
-        'agents': [{'name': k, **v} for k, v in agent_data.items()]
+        'orders': filtered_orders, 'start_date': start_date, 'end_date': end_date, 'search_q': search_q,
+        'tot_new_ord': filtered_orders.filter(is_repeat=False).count(),
+        'tot_rep_ord': filtered_orders.filter(is_repeat=True).count(),
+        'tot_new_bot': sum(o.total_bottles for o in filtered_orders if not o.is_repeat),
+        'tot_rep_bot': sum(o.total_bottles for o in filtered_orders if o.is_repeat),
+        'agents': [{'name': k, **v} for k, v in agent_data.items()],
+        'inactive_list': inactive_list, # Send to Template
     }
     return render(request, 'crm_core/admin_control.html', ctx)
 
