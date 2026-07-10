@@ -29,6 +29,7 @@ def dashboard(request):
 @login_required
 def emp_dashboard_view(request):
     username = request.user.username
+    user_instance = request.user  # Django User Object for ForeignKey fields
     message = ""
     
     # AJAX ENDPOINT FOR LIVE EDITING FETCHING
@@ -36,7 +37,6 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            # Safe parsing for phone fields
             phone_str = getattr(order_obj, 'phone', getattr(order_obj, 'customer_phone', ''))
             p_parts = phone_str.split('/')
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
@@ -60,7 +60,7 @@ def emp_dashboard_view(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # 1. HANDLE POST REQUESTS (SAFE COMPATIBILITY SUBMISSION)
+    # 1. HANDLE POST REQUESTS
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -98,7 +98,6 @@ def emp_dashboard_view(request):
                 if target_order.status == 'Generated':
                     target_order.customer_name = customer_name
                     
-                    # Safe Dynamic Attributes Mapping to avoid field error crashes
                     for p_attr in ['phone', 'customer_phone', 'mobile']:
                         if hasattr(target_order, p_attr): setattr(target_order, p_attr, combined_phones)
                     for a_attr in ['address', 'customer_address', 'full_address']:
@@ -112,19 +111,23 @@ def emp_dashboard_view(request):
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status badal chuka hai!"
+                    message = "error: Status change ho chuka hai!"
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
             try:
-                # Dynamic Object Mapping Initialization
                 new_order = Order()
                 new_order.customer_name = customer_name
                 new_order.status = 'Generated'
                 
-                # Check actual model definitions on-the-fly to assign values smoothly
+                # FIXED HERE: If the field expects a User model instance, we assign user_instance object instead of username text string
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
-                    if hasattr(new_order, e_attr): setattr(new_order, e_attr, username)
+                    if hasattr(new_order, e_attr):
+                        try:
+                            setattr(new_order, e_attr, user_instance) # Try assigning User object instance
+                        except Exception:
+                            setattr(new_order, e_attr, username) # Fallback to text string if model is plain character text
+                
                 for p_attr in ['phone', 'customer_phone', 'mobile']:
                     if hasattr(new_order, p_attr): setattr(new_order, p_attr, combined_phones)
                 for a_attr in ['address', 'customer_address', 'full_address']:
@@ -139,7 +142,7 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # 2. FILTERS & SYSTEM LOOKUP
+    # 2. FILTERS & SEARCH
     search_phone = request.GET.get('search_phone', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
@@ -148,10 +151,12 @@ def emp_dashboard_view(request):
 
     try:
         my_orders = orders_query.order_by('-id')
+        all_existing_phones = list(Order.objects.values_list('phone', flat=True)) if hasattr(Order, 'phone') else []
     except Exception:
         my_orders = []
+        all_existing_phones = []
 
-    # 3. COMPILING DYNAMIC INTERFACE ROW LOOPS
+    # 3. COMPILING DATA TABLE LOG ROWS
     total_orders_count = len(my_orders)
     total_sales_amount = 0
     repeat_counter = 0
@@ -159,7 +164,10 @@ def emp_dashboard_view(request):
     orders_rows = ""
     for order in my_orders:
         order_date_str = order.date.strftime('%d-%m-%Y') if hasattr(order, 'date') and order.date else '10-07-2026'
-        emp_badge = getattr(order, 'emp', getattr(order, 'agent', 'System'))
+        
+        raw_emp = getattr(order, 'emp', getattr(order, 'agent', getattr(order, 'employee', 'System')))
+        emp_badge = getattr(raw_emp, 'username', str(raw_emp)) # Handle object vs string name extraction safely
+        
         p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
         i_val = getattr(order, 'items', getattr(order, 'products', ''))
@@ -194,7 +202,7 @@ def emp_dashboard_view(request):
         orders_rows = """<tr><td colspan="7" class="text-center text-muted py-4">Koi order logs nahi mile.</td></tr>"""
 
     from django.http import HttpResponse
-    success_msg = "Order successfully punch ho gaya aur repeat metrics update ho gaye hain!" if message == "success" else "Order updates successfully save ho gaye hain!"
+    success_msg = "Order successfully punch ho gaya aur database me safe hai!" if message == "success" else "Order updates successfully save ho gaye hain!"
     alert_box = f'<div class="alert alert-success fw-bold shadow-sm mb-3">➔ {success_msg}</div>' if message in ["success", "update_success"] else ""
     if "error" in message:
         alert_box = f'<div class="alert alert-danger fw-bold shadow-sm mb-3">⚠️ {message}</div>'
