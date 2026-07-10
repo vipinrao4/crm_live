@@ -6,12 +6,18 @@
 </head>
 <body class="bg-light">
     <div class="container-fluid mt-3">
-        <div class="d-flex justify-content-between mb-3 align-items-center">
-            <h4 class="text-primary fw-bold">Employee Dashboard: {{ request.user.username }}</h4>
-            <form class="d-flex gap-2">
-                <input type="date" name="date" value="{{ date_filter }}" class="form-control">
-                <button type="submit" class="btn btn-dark">Filter Date</button>
-            </form>
+        <div class="d-flex justify-content-between mb-3 align-items-center bg-white p-3 shadow-sm rounded">
+            <h5 class="text-primary fw-bold m-0">Employee Dashboard: {{ request.user.username }}</h5>
+            <div class="d-flex gap-3 align-items-center">
+                <form class="d-flex gap-2 align-items-center m-0">
+                    <span class="fw-bold small">From:</span>
+                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
+                    <span class="fw-bold small">To:</span>
+                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
+                    <button type="submit" class="btn btn-sm btn-dark fw-bold">Filter</button>
+                </form>
+                <a href="/admin/logout/" class="btn btn-sm btn-outline-danger fw-bold">Logout</a>
+            </div>
         </div>
 
         <div class="row mb-4 text-center">
@@ -45,7 +51,9 @@
                         
                         <div class="d-flex gap-2 mb-2">
                             <input type="number" name="pincode" id="pincode" class="form-control" placeholder="Pincode" onkeyup="fetchPincode()" required>
-                            <input type="text" name="post_office" id="post_office" class="form-control" placeholder="Post Office" required>
+                            <select name="post_office" id="post_office" class="form-select" required>
+                                <option value="">Select Post Office</option>
+                            </select>
                         </div>
                         <div class="d-flex gap-2 mb-3">
                             <input type="text" name="tehsil" id="tehsil" class="form-control" placeholder="Tehsil">
@@ -73,15 +81,16 @@
 
             <div class="col-md-7">
                 <div class="card p-3 shadow-sm">
-                    <h5 class="fw-bold">Submitted Orders ({{ date_filter }})</h5>
+                    <h5 class="fw-bold">Submitted Orders</h5>
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm text-center" style="font-size: 13px;">
                             <thead class="table-dark">
-                                <tr><th>Customer</th><th>Items & Total</th><th>Type</th><th>Status</th><th>Action</th></tr>
+                                <tr><th>Date</th><th>Customer</th><th>Items & Total</th><th>Type</th><th>Status</th><th>Action</th></tr>
                             </thead>
                             <tbody>
                                 {% for o in orders %}
                                 <tr>
+                                    <td>{{ o.date|date:"d M" }}</td>
                                     <td>{{ o.customer_name }}<br>{{ o.phone1 }}</td>
                                     <td>{{ o.items_summary }}<br><span class="text-success fw-bold">Rs. {{ o.grand_total }}</span></td>
                                     <td>{% if o.is_repeat %}<span class="badge bg-warning text-dark">Repeat</span>{% else %}<span class="badge bg-primary">New</span>{% endif %}</td>
@@ -150,16 +159,25 @@
         return true; 
     }
 
-    function fetchPincode() {
+    // PINCODE LOGIC FOR DROPDOWN
+    function fetchPincode(selectedPo = null) {
         let pin = document.getElementById('pincode').value;
         if(pin.length === 6) {
             fetch(`https://api.postalpincode.in/pincode/${pin}`).then(r=>r.json()).then(d=>{
                 if(d[0].Status === 'Success') {
-                    let po = d[0].PostOffice[0];
-                    document.getElementById('district').value = po.District;
-                    document.getElementById('state').value = po.State;
-                    document.getElementById('post_office').value = po.Name;
-                    document.getElementById('tehsil').value = po.Block !== "NA" ? po.Block : po.District;
+                    let postOffices = d[0].PostOffice;
+                    let poDropdown = document.getElementById('post_office');
+                    
+                    poDropdown.innerHTML = '<option value="">Select Post Office</option>';
+                    
+                    postOffices.forEach(po => {
+                        let isSelected = (selectedPo === po.Name) ? 'selected' : '';
+                        poDropdown.innerHTML += `<option value="${po.Name}" ${isSelected}>${po.Name}</option>`;
+                    });
+
+                    document.getElementById('district').value = postOffices[0].District;
+                    document.getElementById('state').value = postOffices[0].State;
+                    document.getElementById('tehsil').value = postOffices[0].Block !== "NA" ? postOffices[0].Block : postOffices[0].District;
                 }
             });
         }
@@ -176,7 +194,10 @@
                 document.getElementById('phone2').value = d.data.phone2;
                 document.getElementById('address').value = d.data.address;
                 document.getElementById('pincode').value = d.data.pincode;
-                document.getElementById('post_office').value = d.data.post_office;
+                
+                document.getElementById('post_office').innerHTML = `<option value="${d.data.post_office}" selected>${d.data.post_office}</option>`;
+                fetchPincode(d.data.post_office); 
+                
                 document.getElementById('tehsil').value = d.data.tehsil;
                 document.getElementById('district').value = d.data.district;
                 document.getElementById('state').value = d.data.state;
@@ -192,7 +213,10 @@
         document.getElementById('phone2').value = p2;
         document.getElementById('address').value = add;
         document.getElementById('pincode').value = pin;
-        document.getElementById('post_office').value = po;
+        
+        document.getElementById('post_office').innerHTML = `<option value="${po}" selected>${po}</option>`;
+        fetchPincode(po);
+
         document.getElementById('tehsil').value = teh;
         document.getElementById('district').value = dist;
         document.getElementById('state').value = st;

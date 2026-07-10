@@ -10,13 +10,19 @@
 </head>
 <body class="bg-light">
     <div class="container-fluid mt-3">
-        <div class="d-flex justify-content-between mb-3 align-items-center">
-            <h4 class="text-danger fw-bold m-0">Admin Control Panel</h4>
-            <form class="d-flex gap-2">
-                <input type="text" name="search" value="{{ search_q }}" class="form-control" placeholder="Search Number...">
-                <input type="date" name="date" value="{{ date_filter }}" class="form-control">
-                <button type="submit" class="btn btn-primary fw-bold">Filter</button>
-            </form>
+        <div class="d-flex justify-content-between mb-3 align-items-center bg-white p-3 shadow-sm rounded">
+            <h5 class="text-danger fw-bold m-0">Admin Panel ({{ request.user.username }})</h5>
+            <div class="d-flex gap-3 align-items-center">
+                <form class="d-flex gap-2 align-items-center m-0">
+                    <input type="text" name="search" value="{{ search_q }}" class="form-control form-control-sm" placeholder="Phone No...">
+                    <span class="fw-bold small ms-2">From:</span>
+                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
+                    <span class="fw-bold small">To:</span>
+                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold">Filter</button>
+                </form>
+                <a href="/admin/logout/" class="btn btn-sm btn-dark fw-bold">Logout</a>
+            </div>
         </div>
 
         <div class="row mb-4 text-center">
@@ -34,7 +40,7 @@
                         <button onclick="downloadCSV('agentTable', 'Agent_Perf.csv')" class="btn btn-sm btn-success fw-bold">Excel Download</button>
                     </div>
                     <table class="table table-bordered text-center table-sm" id="agentTable">
-                        <thead class="table-dark"><tr><th>EMP</th><th>New Bottle</th><th>Repeat Bottle</th><th>Ad Spent</th><th>Average</th></tr></thead>
+                        <thead class="table-dark"><tr><th>EMP</th><th>New Bottle</th><th>Rep Bottle</th><th>Ad Spent</th><th>Avg</th></tr></thead>
                         <tbody>
                             {% for a in agents %}
                             <tr>

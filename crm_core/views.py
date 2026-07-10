@@ -9,7 +9,6 @@ from datetime import datetime
 def is_admin(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
-# LOGIN FUNCTION JO MISSING THA
 def custom_login(request):
     if request.user.is_authenticated:
         if request.user.is_staff or request.user.is_superuser:
@@ -54,7 +53,6 @@ def emp_dashboard_view(request):
         phone1 = request.POST.get('phone1')
         phone2 = request.POST.get('phone2')
         
-        # Check Repeat
         is_rep = Order.objects.filter(Q(phone1=phone1) | Q(phone2=phone1)).exclude(id=order_id if order_id else None).exists()
         
         if order_id:
@@ -79,12 +77,17 @@ def emp_dashboard_view(request):
         o.save()
         return redirect('emp_dashboard')
 
-    # Date Filter
-    date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
-    my_orders = Order.objects.filter(emp=request.user.username, date__date=date_filter).order_by('-id')
+    # DATE RANGE FILTER
+    today_str = datetime.today().strftime('%Y-%m-%d')
+    start_date = request.GET.get('start_date', today_str)
+    end_date = request.GET.get('end_date', today_str)
+    
+    my_orders = Order.objects.filter(emp=request.user.username).order_by('-id')
+    if start_date and end_date:
+        my_orders = my_orders.filter(date__date__gte=start_date, date__date__lte=end_date)
     
     ctx = {
-        'orders': my_orders, 'date_filter': date_filter,
+        'orders': my_orders, 'start_date': start_date, 'end_date': end_date,
         'new_ord_count': my_orders.filter(is_repeat=False).count(),
         'rep_ord_count': my_orders.filter(is_repeat=True).count(),
         'new_bot_count': sum(o.total_bottles for o in my_orders if not o.is_repeat),
@@ -94,14 +97,17 @@ def emp_dashboard_view(request):
 
 @user_passes_test(is_admin, login_url='/accounts/login/')
 def dashboard(request):
-    date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
+    today_str = datetime.today().strftime('%Y-%m-%d')
+    start_date = request.GET.get('start_date', today_str)
+    end_date = request.GET.get('end_date', today_str)
     search_q = request.GET.get('search', '')
 
     orders = Order.objects.all().order_by('-id')
+    
     if search_q:
         orders = orders.filter(Q(phone1__icontains=search_q) | Q(phone2__icontains=search_q))
-    elif date_filter:
-        orders = orders.filter(date__date=date_filter)
+    elif start_date and end_date:
+        orders = orders.filter(date__date__gte=start_date, date__date__lte=end_date)
 
     agent_data = {}
     for o in orders:
@@ -111,7 +117,7 @@ def dashboard(request):
         else: agent_data[o.emp]['new_b'] += o.total_bottles
 
     ctx = {
-        'orders': orders, 'date_filter': date_filter, 'search_q': search_q,
+        'orders': orders, 'start_date': start_date, 'end_date': end_date, 'search_q': search_q,
         'tot_new_ord': orders.filter(is_repeat=False).count(),
         'tot_rep_ord': orders.filter(is_repeat=True).count(),
         'tot_new_bot': sum(o.total_bottles for o in orders if not o.is_repeat),
