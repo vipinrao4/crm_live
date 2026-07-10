@@ -4,7 +4,6 @@ from django.contrib.auth import views as auth_views
 from crm_core import views
 
 urlpatterns = [
-    # LoginView ko bata diya ki hamara template 'login.html' hi hai
     path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('update-status/<int:order_id>/', views.admin_update_status, name='admin_update_status'),
     path('admin/', admin.site.urls),
