@@ -10,6 +10,7 @@
 </head>
 <body class="bg-light">
     <div class="container-fluid mt-3">
+        <!-- Header, Date Range & Logout -->
         <div class="d-flex justify-content-between mb-3 align-items-center bg-white p-3 shadow-sm rounded">
             <h5 class="text-danger fw-bold m-0">Admin Panel ({{ request.user.username }})</h5>
             <div class="d-flex gap-3 align-items-center">
@@ -21,10 +22,12 @@
                     <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
                     <button type="submit" class="btn btn-sm btn-primary fw-bold">Filter</button>
                 </form>
-                <a href="/admin/logout/" class="btn btn-sm btn-dark fw-bold">Logout</a>
+                <!-- NAYA LOGOUT LINK YAHAN HAI -->
+                <a href="/logout/" class="btn btn-sm btn-dark fw-bold">Logout</a>
             </div>
         </div>
 
+        <!-- 4 Top Cards -->
         <div class="row mb-4 text-center">
             <div class="col-3"><div class="card p-3 shadow-sm border-primary"><h6>New Orders</h6><h3>{{ tot_new_ord }}</h3></div></div>
             <div class="col-3"><div class="card p-3 shadow-sm border-warning"><h6>Repeat Orders</h6><h3>{{ tot_rep_ord }}</h3></div></div>
@@ -33,6 +36,7 @@
         </div>
 
         <div class="row">
+            <!-- AGENT PERFORMANCE -->
             <div class="col-md-4">
                 <div class="card p-3 shadow-sm mb-4">
                     <div class="d-flex justify-content-between mb-3">
@@ -54,6 +58,7 @@
                 </div>
             </div>
 
+            <!-- MASTER LOG -->
             <div class="col-md-8">
                 <div class="card p-3 shadow-sm">
                     <div class="d-flex justify-content-between mb-3">

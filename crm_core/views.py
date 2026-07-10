@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth import authenticate, login as django_login
+from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from django.http import JsonResponse
 from .models import Order
 from django.db.models import Q
@@ -32,9 +32,13 @@ def custom_login(request):
             
     return render(request, 'crm_core/login.html', {'error': error_msg})
 
+# NAYA LOGOUT FUNCTION
+def custom_logout(request):
+    django_logout(request)
+    return redirect('/accounts/login/')
+
 @login_required(login_url='/accounts/login/')
 def emp_dashboard_view(request):
-    # AJAX Search for old customer
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'search_phone':
         q = request.GET.get('phone', '')
         o = Order.objects.filter(Q(phone1=q) | Q(phone2=q)).order_by('-id').first()
@@ -47,7 +51,6 @@ def emp_dashboard_view(request):
             }})
         return JsonResponse({'status': 'not_found'})
 
-    # POST Form Submission
     if request.method == 'POST':
         order_id = request.POST.get('order_id')
         phone1 = request.POST.get('phone1')
@@ -77,7 +80,6 @@ def emp_dashboard_view(request):
         o.save()
         return redirect('emp_dashboard')
 
-    # DATE RANGE FILTER
     today_str = datetime.today().strftime('%Y-%m-%d')
     start_date = request.GET.get('start_date', today_str)
     end_date = request.GET.get('end_date', today_str)

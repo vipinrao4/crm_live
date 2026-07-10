@@ -6,6 +6,7 @@
 </head>
 <body class="bg-light">
     <div class="container-fluid mt-3">
+        <!-- Top Header & Date Range -->
         <div class="d-flex justify-content-between mb-3 align-items-center bg-white p-3 shadow-sm rounded">
             <h5 class="text-primary fw-bold m-0">Employee Dashboard: {{ request.user.username }}</h5>
             <div class="d-flex gap-3 align-items-center">
@@ -16,10 +17,12 @@
                     <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
                     <button type="submit" class="btn btn-sm btn-dark fw-bold">Filter</button>
                 </form>
-                <a href="/admin/logout/" class="btn btn-sm btn-outline-danger fw-bold">Logout</a>
+                <!-- NAYA LOGOUT LINK YAHAN HAI -->
+                <a href="/logout/" class="btn btn-sm btn-outline-danger fw-bold">Logout</a>
             </div>
         </div>
 
+        <!-- 4 Cards -->
         <div class="row mb-4 text-center">
             <div class="col-3"><div class="card p-3 shadow-sm border-primary"><h6>New Orders</h6><h3 class="text-primary">{{ new_ord_count }}</h3></div></div>
             <div class="col-3"><div class="card p-3 shadow-sm border-warning"><h6>Repeat Orders</h6><h3 class="text-warning">{{ rep_ord_count }}</h3></div></div>
@@ -28,6 +31,7 @@
         </div>
 
         <div class="row">
+            <!-- PUNCH FORM -->
             <div class="col-md-5">
                 <div class="card p-4 shadow-sm mb-4">
                     <h5 class="fw-bold mb-3">Order Entry Form</h5>
@@ -51,6 +55,7 @@
                         
                         <div class="d-flex gap-2 mb-2">
                             <input type="number" name="pincode" id="pincode" class="form-control" placeholder="Pincode" onkeyup="fetchPincode()" required>
+                            <!-- Dropdown for Post Office -->
                             <select name="post_office" id="post_office" class="form-select" required>
                                 <option value="">Select Post Office</option>
                             </select>
@@ -61,6 +66,7 @@
                             <input type="text" name="state" id="state" class="form-control" placeholder="State">
                         </div>
 
+                        <!-- Product Selector -->
                         <h6 class="fw-bold">Select Products</h6>
                         <div id="product-rows"></div>
                         <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addProductRow()">+ Add Product Dropdown</button>
@@ -79,6 +85,7 @@
                 </div>
             </div>
 
+            <!-- ORDER LIST -->
             <div class="col-md-7">
                 <div class="card p-3 shadow-sm">
                     <h5 class="fw-bold">Submitted Orders</h5>
