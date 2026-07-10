@@ -149,7 +149,7 @@ def emp_dashboard_view(request):
             try:
                 new_order = Order()
                 new_order.customer_name = customer_name
-                new_order.status = 'Pending'  # Default state set to Pending
+                new_order.status = 'Pending'
                 
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
                     if hasattr(new_order, e_attr):
