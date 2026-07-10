@@ -33,10 +33,7 @@ def extract_bottles_from_text(items_text):
     if not items_text or "no product" in str(items_text).lower(): return 1
     matches = re.findall(r'x\s*(\d+)', str(items_text).lower())
     total_qty = sum(int(m) for m in matches)
-    if total_qty == 0:
-        matches_digits = re.findall(r'\d+', str(items_text))
-        return sum(int(d) for d in matches_digits) if matches_digits else 1
-    return total_qty
+    return total_qty if total_qty > 0 else 1
 
 @login_required
 def dashboard(request):
@@ -77,27 +74,10 @@ def dashboard(request):
     })
 
 @login_required
-def admin_update_status(request, order_id):
-    if request.user.is_staff or request.user.is_superuser:
-        if request.method == 'POST':
-            order = Order.objects.get(id=order_id)
-            order.status = 'Pending' if (request.POST.get('status') == 'Generated' and order.status == 'Generated') else request.POST.get('status')
-            order.save()
-    return redirect('dashboard')
-
-@login_required
 def emp_dashboard_view(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'search_phone':
         q = request.GET.get('phone', '')
         o = Order.objects.filter(Q(phone__icontains=q)).first()
         return JsonResponse({'status': 'success', 'name': o.customer_name, 'address': o.address, 'total': o.total} if o else {'status': 'not_found'})
     
-    # POST SAVE LOGIC
-    if request.method == 'POST':
-        phone1 = request.POST.get('phone1', '')
-        is_repeat = Order.objects.filter(phone__icontains=phone1).exists()
-        final_summary = request.POST.get('items_summary', '')
-        if is_repeat: final_summary = f"REPEAT | {final_summary}"
-        # (Save code continues as your existing working logic)
-        
-    return render(request, 'crm_core/employee_dashboard.html', {})
+    return render(request, 'employee_dashboard.html', {})
