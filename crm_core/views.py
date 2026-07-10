@@ -10,6 +10,7 @@ def dashboard(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
+    # ADMIN DATA LOAD - Asli correct fields ke sath bina kisi breakdown ke
     try:
         orders = Order.objects.all().order_by('-id')
         total_orders = orders.count()
@@ -17,15 +18,41 @@ def dashboard(request):
         orders = []
         total_orders = 0
 
+    # Repeat counts calculation for Admin dashboard counters
+    try:
+        all_existing_phones = list(Order.objects.values_list('phone', flat=True))
+    except Exception:
+        all_existing_phones = []
+        
+    raw_phone_pool = []
+    for p in all_existing_phones:
+        if p:
+            for num in p.split('/'):
+                c_num = num.strip()
+                if c_num: raw_phone_pool.append(c_num)
+                
+    from collections import Counter
+    phone_counts = Counter(raw_phone_pool)
+    
+    repeat_counter = 0
+    for order in orders:
+        if order.phone:
+            for segment in order.phone.split('/'):
+                seg_clean = segment.strip()
+                if seg_clean and phone_counts[seg_clean] > 1:
+                    repeat_counter += 1
+                    break
+
     context = {
         'orders': orders,
         'total_orders': total_orders,
         'total_products_sold': total_orders,
-        'repeat_orders_count': 0,
+        'repeat_orders_count': repeat_counter,
     }
     return render(request, 'crm_core/admin_control.html', context)
 
-# ADMIN STATUS UPDATE ACTION BUTTONS VIEW
+
+# ADMIN ACTION REDIRECT STATUS UPDATE CONTROLLER
 @login_required
 def admin_update_status(request, order_id):
     if request.user.is_staff or request.user.is_superuser:
@@ -51,14 +78,9 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            phone_str = getattr(order_obj, 'phone', '')
-            p_parts = phone_str.split('/')
+            p_parts = order_obj.phone.split('/') if order_obj.phone else ["", ""]
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
-            
-            addr_str = getattr(order_obj, 'address', '')
-            items_str = getattr(order_obj, 'items', '')
-            total_val = getattr(order_obj, 'total', 0)
             
             return JsonResponse({
                 'status': 'success',
@@ -66,15 +88,15 @@ def emp_dashboard_view(request):
                 'name': order_obj.customer_name,
                 'phone1': p1,
                 'phone2': p2,
-                'address': addr_str,
-                'items': items_str,
-                'total': total_val,
+                'address': order_obj.address,
+                'items': order_obj.items,
+                'total': order_obj.total,
                 'is_editable': order_obj.status == 'Pending'
             })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # 1. HANDLE POST REQUESTS (SUBMIT & EDIT)
+    # HANDLE POST REQUESTS (SUBMIT & EDIT)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -111,14 +133,15 @@ def emp_dashboard_view(request):
                 target_order = Order.objects.get(id=order_id)
                 if target_order.status == 'Pending':
                     target_order.customer_name = customer_name
-                    if hasattr(target_order, 'phone'): target_order.phone = combined_phones
-                    if hasattr(target_order, 'address'): target_order.address = full_address
-                    if items_list and hasattr(target_order, 'items'): target_order.items = final_items_summary
-                    if hasattr(target_order, 'total'): target_order.total = total
+                    target_order.phone = combined_phones
+                    target_order.address = full_address
+                    if items_list:
+                        target_order.items = final_items_summary
+                    target_order.total = total
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status badal chuka hai! Ab edit lock hai."
+                    message = "error: Status badal chuka hai! Edit locked hai."
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
@@ -127,6 +150,7 @@ def emp_dashboard_view(request):
                 new_order.customer_name = customer_name
                 new_order.status = 'Pending'
                 
+                # Model compatibility layer assignment mapping
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
                     if hasattr(new_order, e_attr):
                         try: setattr(new_order, e_attr, user_instance)
@@ -142,12 +166,24 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # 2. FETCH QUERY SET
+    # FETCH ORDER LOGS LOGIC
     orders_query = Order.objects.all()
     try:
         my_orders = orders_query.order_by('-id')
+        all_existing_phones = list(Order.objects.values_list('phone', flat=True))
     except Exception:
         my_orders = []
+        all_existing_phones = []
+
+    raw_phone_pool = []
+    for p in all_existing_phones:
+        if p:
+            for num in p.split('/'):
+                c_num = num.strip()
+                if c_num: raw_phone_pool.append(c_num)
+                
+    from collections import Counter
+    phone_counts = Counter(raw_phone_pool)
 
     total_orders_count = len(my_orders)
     total_sales_amount = 0
@@ -159,14 +195,17 @@ def emp_dashboard_view(request):
         raw_emp = getattr(order, 'emp', getattr(order, 'employee', 'System'))
         emp_badge = getattr(raw_emp, 'username', str(raw_emp))
         
-        p_val = getattr(order, 'phone', '')
-        a_val = getattr(order, 'address', '')
-        i_val = getattr(order, 'items', '')
-        t_val = getattr(order, 'total', 0)
-        
-        try: total_sales_amount += float(t_val or 0)
-        except ValueError: pass
+        try: total_sales_amount += float(order.total or 0)
+        except (ValueError, TypeError): pass
 
+        is_repeat = False
+        if order.phone:
+            for segment in order.phone.split('/'):
+                seg_clean = segment.strip()
+                if seg_clean and phone_counts[seg_clean] > 1:
+                    is_repeat = True
+                    break
+        
         if order.status == 'Pending':
             status_display = '<span class="badge bg-warning text-dark text-uppercase">Pending</span>'
             action_btn = f'<button onclick="openEditModal({order.id})" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold mt-1" style="font-size: 11px;">Edit Order</button>'
@@ -177,14 +216,18 @@ def emp_dashboard_view(request):
             status_display = '<span class="badge bg-danger text-uppercase">Cancelled</span>'
             action_btn = '<span class="text-muted small italic">Locked 🔒</span>'
 
+        if is_repeat:
+            repeat_counter += 1
+            status_display += '<br><span class="badge bg-warning text-dark px-2 py-1 text-uppercase fw-bold mt-1" style="font-size:10px;">⚠️ REPEAT</span>'
+
         orders_rows += f"""
         <tr>
             <td class="text-muted">{order_date_str}</td>
             <td><span class="badge bg-secondary px-2 py-1">{emp_badge}</span></td>
-            <td><b>{order.customer_name}</b><br><small class="text-muted">{p_val}</small></td>
-            <td class="text-wrap" style="max-width: 220px; font-size:12px;">{a_val}</td>
-            <td><span class="fw-semibold text-secondary">{i_val}</span></td>
-            <td class="fw-bold text-dark">₹{t_val}</td>
+            <td><b>{order.customer_name}</b><br><small class="text-muted">{order.phone}</small></td>
+            <td class="text-wrap" style="max-width: 220px; font-size:12px;">{order.address}</td>
+            <td><span class="fw-semibold text-secondary">{order.items}</span></td>
+            <td class="fw-bold text-dark">₹{order.total}</td>
             <td>
                 {status_display}<br>
                 {action_btn}
@@ -225,16 +268,22 @@ def emp_dashboard_view(request):
             {alert_box}
 
             <div class="row g-3 mb-4">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="card p-3 shadow-sm bg-white border-start border-danger border-4">
                         <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Filtered Orders</small>
                         <h3 class="text-danger mb-0 fw-bold">{total_orders_count}</h3>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="card p-3 shadow-sm bg-white border-start border-primary border-4">
                         <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Sales Volume</small>
                         <h3 class="text-primary mb-0 fw-bold">₹{total_sales_amount:,.2f}</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 shadow-sm bg-white border-start border-warning border-4">
+                        <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Repeat Orders Count</small>
+                        <h3 class="text-warning mb-0 fw-bold">{repeat_counter} Orders</h3>
                     </div>
                 </div>
             </div>
