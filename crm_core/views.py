@@ -25,11 +25,25 @@ def dashboard(request):
     }
     return render(request, 'crm_core/admin_control.html', context)
 
+# ADMIN STATUS UPDATE ACTION BUTTONS VIEW
+@login_required
+def admin_update_status(request, order_id):
+    if request.user.is_staff or request.user.is_superuser:
+        if request.method == 'POST':
+            new_status = request.POST.get('status')
+            try:
+                order_obj = Order.objects.get(id=order_id)
+                order_obj.status = new_status
+                order_obj.save()
+            except Exception:
+                pass
+    return redirect('dashboard')
+
 
 @login_required
 def emp_dashboard_view(request):
     username = request.user.username
-    user_instance = request.user  # Django User Object for ForeignKey fields
+    user_instance = request.user
     message = ""
     
     # AJAX ENDPOINT FOR LIVE EDITING FETCHING
@@ -37,14 +51,14 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            phone_str = getattr(order_obj, 'phone', getattr(order_obj, 'customer_phone', ''))
+            phone_str = getattr(order_obj, 'phone', '')
             p_parts = phone_str.split('/')
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
             
-            addr_str = getattr(order_obj, 'address', getattr(order_obj, 'customer_address', ''))
-            items_str = getattr(order_obj, 'items', getattr(order_obj, 'products', ''))
-            total_val = getattr(order_obj, 'total', getattr(order_obj, 'grand_total', 0))
+            addr_str = getattr(order_obj, 'address', '')
+            items_str = getattr(order_obj, 'items', '')
+            total_val = getattr(order_obj, 'total', 0)
             
             return JsonResponse({
                 'status': 'success',
@@ -55,12 +69,12 @@ def emp_dashboard_view(request):
                 'address': addr_str,
                 'items': items_str,
                 'total': total_val,
-                'is_editable': order_obj.status == 'Generated'
+                'is_editable': order_obj.status == 'Pending'
             })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # 1. HANDLE POST REQUESTS
+    # 1. HANDLE POST REQUESTS (SUBMIT & EDIT)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -95,68 +109,46 @@ def emp_dashboard_view(request):
             order_id = request.POST.get('order_id')
             try:
                 target_order = Order.objects.get(id=order_id)
-                if target_order.status == 'Generated':
+                if target_order.status == 'Pending':
                     target_order.customer_name = customer_name
-                    
-                    for p_attr in ['phone', 'customer_phone', 'mobile']:
-                        if hasattr(target_order, p_attr): setattr(target_order, p_attr, combined_phones)
-                    for a_attr in ['address', 'customer_address', 'full_address']:
-                        if hasattr(target_order, a_attr): setattr(target_order, a_attr, full_address)
-                    if items_list:
-                        for i_attr in ['items', 'products', 'product_summary']:
-                            if hasattr(target_order, i_attr): setattr(target_order, i_attr, final_items_summary)
-                    for t_attr in ['total', 'grand_total', 'amount']:
-                        if hasattr(target_order, t_attr): setattr(target_order, t_attr, total)
-                        
+                    if hasattr(target_order, 'phone'): target_order.phone = combined_phones
+                    if hasattr(target_order, 'address'): target_order.address = full_address
+                    if items_list and hasattr(target_order, 'items'): target_order.items = final_items_summary
+                    if hasattr(target_order, 'total'): target_order.total = total
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status change ho chuka hai!"
+                    message = "error: Status badal chuka hai! Ab edit lock hai."
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
             try:
                 new_order = Order()
                 new_order.customer_name = customer_name
-                new_order.status = 'Generated'
+                new_order.status = 'Pending'
                 
-                # FIXED HERE: If the field expects a User model instance, we assign user_instance object instead of username text string
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
                     if hasattr(new_order, e_attr):
-                        try:
-                            setattr(new_order, e_attr, user_instance) # Try assigning User object instance
-                        except Exception:
-                            setattr(new_order, e_attr, username) # Fallback to text string if model is plain character text
+                        try: setattr(new_order, e_attr, user_instance)
+                        except Exception: setattr(new_order, e_attr, username)
                 
-                for p_attr in ['phone', 'customer_phone', 'mobile']:
-                    if hasattr(new_order, p_attr): setattr(new_order, p_attr, combined_phones)
-                for a_attr in ['address', 'customer_address', 'full_address']:
-                    if hasattr(new_order, a_attr): setattr(new_order, a_attr, full_address)
-                for i_attr in ['items', 'products', 'product_summary']:
-                    if hasattr(new_order, i_attr): setattr(new_order, i_attr, final_items_summary)
-                for t_attr in ['total', 'grand_total', 'amount']:
-                    if hasattr(new_order, t_attr): setattr(new_order, t_attr, total)
+                if hasattr(new_order, 'phone'): new_order.phone = combined_phones
+                if hasattr(new_order, 'address'): new_order.address = full_address
+                if hasattr(new_order, 'items'): new_order.items = final_items_summary
+                if hasattr(new_order, 'total'): new_order.total = total
                 
                 new_order.save()
                 message = "success"
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # 2. FILTERS & SEARCH
-    search_phone = request.GET.get('search_phone', '').strip()
-    start_date = request.GET.get('start_date', '').strip()
-    end_date = request.GET.get('end_date', '').strip()
-
+    # 2. FETCH QUERY SET
     orders_query = Order.objects.all()
-
     try:
         my_orders = orders_query.order_by('-id')
-        all_existing_phones = list(Order.objects.values_list('phone', flat=True)) if hasattr(Order, 'phone') else []
     except Exception:
         my_orders = []
-        all_existing_phones = []
 
-    # 3. COMPILING DATA TABLE LOG ROWS
     total_orders_count = len(my_orders)
     total_sales_amount = 0
     repeat_counter = 0
@@ -164,23 +156,25 @@ def emp_dashboard_view(request):
     orders_rows = ""
     for order in my_orders:
         order_date_str = order.date.strftime('%d-%m-%Y') if hasattr(order, 'date') and order.date else '10-07-2026'
+        raw_emp = getattr(order, 'emp', getattr(order, 'employee', 'System'))
+        emp_badge = getattr(raw_emp, 'username', str(raw_emp))
         
-        raw_emp = getattr(order, 'emp', getattr(order, 'agent', getattr(order, 'employee', 'System')))
-        emp_badge = getattr(raw_emp, 'username', str(raw_emp)) # Handle object vs string name extraction safely
-        
-        p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
-        a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
-        i_val = getattr(order, 'items', getattr(order, 'products', ''))
-        t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
+        p_val = getattr(order, 'phone', '')
+        a_val = getattr(order, 'address', '')
+        i_val = getattr(order, 'items', '')
+        t_val = getattr(order, 'total', 0)
         
         try: total_sales_amount += float(t_val or 0)
         except ValueError: pass
 
-        status_display = f'<span class="badge bg-success px-2 py-1 text-uppercase">{order.status}</span>'
-        
-        if order.status == 'Generated':
+        if order.status == 'Pending':
+            status_display = '<span class="badge bg-warning text-dark text-uppercase">Pending</span>'
             action_btn = f'<button onclick="openEditModal({order.id})" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold mt-1" style="font-size: 11px;">Edit Order</button>'
+        elif order.status == 'Generated':
+            status_display = '<span class="badge bg-success text-uppercase">Generated</span>'
+            action_btn = '<span class="text-muted small italic">Locked 🔒</span>'
         else:
+            status_display = '<span class="badge bg-danger text-uppercase">Cancelled</span>'
             action_btn = '<span class="text-muted small italic">Locked 🔒</span>'
 
         orders_rows += f"""
@@ -202,7 +196,7 @@ def emp_dashboard_view(request):
         orders_rows = """<tr><td colspan="7" class="text-center text-muted py-4">Koi order logs nahi mile.</td></tr>"""
 
     from django.http import HttpResponse
-    success_msg = "Order successfully punch ho gaya aur database me safe hai!" if message == "success" else "Order updates successfully save ho gaye hain!"
+    success_msg = "Order successfully submit ho gaya!" if message == "success" else "Updates successfully save ho gaye hain!"
     alert_box = f'<div class="alert alert-success fw-bold shadow-sm mb-3">➔ {success_msg}</div>' if message in ["success", "update_success"] else ""
     if "error" in message:
         alert_box = f'<div class="alert alert-danger fw-bold shadow-sm mb-3">⚠️ {message}</div>'
@@ -231,22 +225,16 @@ def emp_dashboard_view(request):
             {alert_box}
 
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="card p-3 shadow-sm bg-white border-start border-danger border-4">
                         <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Filtered Orders</small>
                         <h3 class="text-danger mb-0 fw-bold">{total_orders_count}</h3>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="card p-3 shadow-sm bg-white border-start border-primary border-4">
                         <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Sales Volume</small>
                         <h3 class="text-primary mb-0 fw-bold">₹{total_sales_amount:,.2f}</h3>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 shadow-sm bg-white border-start border-warning border-4">
-                        <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Repeat Orders Count</small>
-                        <h3 class="text-warning mb-0 fw-bold">{repeat_counter} Orders</h3>
                     </div>
                 </div>
             </div>
@@ -451,9 +439,7 @@ def emp_dashboard_view(request):
 
             document.getElementById('orderForm').addEventListener('submit', function(e) {{
                 const p1 = document.getElementById('phone1').value;
-                const p2 = document.getElementById('phone2').value;
                 const grandT = parseFloat(document.getElementById('c_total').value) || 0;
-                
                 if(p1.length !== 10 || isNaN(p1)) {{
                     alert('Error: Phone Number 1 poora 10 digit ka hona chahiye!');
                     e.preventDefault();
@@ -496,7 +482,11 @@ def emp_dashboard_view(request):
                 .then(res => res.json())
                 .then(data => {{
                     if(data.status === 'success') {{
-                        document.getElementById('formTitle').innerText = "Edit Generated Entry (#" + orderId + ")";
+                        if(!data.is_editable) {{
+                            alert("Error: Status badal chuka hai, ab aap ise edit nahi kar sakte!");
+                            return;
+                        }}
+                        document.getElementById('formTitle').innerText = "Edit Pending Entry (#" + orderId + ")";
                         document.getElementById('action_type').value = "edit";
                         document.getElementById('order_id').value = data.id;
                         document.getElementById('c_name').value = data.name;
