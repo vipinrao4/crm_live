@@ -5,5 +5,5 @@ from crm_core import views
 urlpatterns = [
     path('update-status/<int:order_id>/', views.admin_update_status, name='admin_update_status'),
     path('admin/', admin.site.urls),
-    path('', include('crm_core.urls')), # Emp dashboard is here
+    path('', include('crm_core.urls')),
 ]

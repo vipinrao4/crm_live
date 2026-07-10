@@ -1,30 +1,79 @@
-<!DOCTYPE html>
-<html>
-<head><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head>
-<body>
-<div class="container mt-4">
-    <div class="card p-3 mb-3">
-        <input type="text" id="searchPhone" placeholder="Search Phone..." class="form-control">
-        <button onclick="searchCustomer()" class="btn btn-primary mt-2">Search</button>
-    </div>
-    <form method="POST">
-        {% csrf_token %}
-        <input type="text" id="c_name" name="customer_name" placeholder="Name" required>
-        <input type="text" id="phone1" name="phone1" placeholder="Phone">
-        <button type="submit" class="btn btn-success">Save</button>
-    </form>
-</div>
-<script>
-    function searchCustomer() {
-        const phone = document.getElementById('searchPhone').value;
-        fetch(`?action=search_phone&phone=${phone}`, { headers: {'X-Requested-With': 'XMLHttpRequest'}})
-        .then(r => r.json()).then(d => {
-            if(d.status === 'success') {
-                document.getElementById('c_name').value = d.name;
-                document.getElementById('phone1').value = phone;
-            }
-        });
-    }
-</script>
-</body>
-</html>
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Order
+from django.db.models import Q
+from datetime import datetime
+from django.http import HttpResponse, JsonResponse
+from collections import Counter
+import re
+
+# Bottle count helper
+def extract_bottles_from_text(items_text):
+    if not items_text or "no product" in str(items_text).lower(): return 1
+    matches = re.findall(r'x\s*(\d+)', str(items_text).lower())
+    total_qty = sum(int(m) for m in matches)
+    return total_qty if total_qty > 0 else 1
+
+@login_required
+def dashboard(request):
+    if not request.user.is_staff and not request.user.is_superuser: return redirect('emp_dashboard')
+    start_date = request.GET.get('start_date', ''); end_date = request.GET.get('end_date', '')
+    orders = Order.objects.all().order_by('-id')
+    if start_date and end_date: orders = orders.filter(date__range=[start_date, end_date])
+    
+    total_orders = orders.count()
+    raw_phone_pool = [c.strip() for o in Order.objects.all() for c in getattr(o, 'phone', '').split('/') if c.strip()]
+    phone_counts = Counter(raw_phone_pool)
+    
+    total_bottle, new_bottle, repeat_bottle = 0, 0, 0
+    agent_perf = {}
+    parsed_orders = []
+    
+    for order in orders:
+        p = getattr(order, 'phone', ''); t = getattr(order, 'total', 0); i = getattr(order, 'items', 'Asthakesri (x1)')
+        e = getattr(order, 'emp', 'System')
+        is_repeat = any(phone_counts[c.strip()] > 1 for c in p.split('/') if c.strip() and phone_counts[c.strip()] > 1)
+        bottles = extract_bottles_from_text(i)
+        
+        total_bottle += bottles
+        if is_repeat: repeat_bottle += bottles
+        else: new_bottle += bottles
+        
+        if e not in agent_perf: agent_perf[e] = {'n': 0, 'r': 0}
+        if is_repeat: agent_perf[e]['r'] += bottles
+        else: agent_perf[e]['n'] += bottles
+            
+        parsed_orders.append({'id': order.id, 'date': order.date, 'emp': e, 'customer_name': order.customer_name, 'phone': p, 'address': order.address, 'items': i, 'total': t, 'status': order.status, 'is_repeat': is_repeat})
+    
+    return render(request, 'crm_core/admin_control.html', {
+        'orders': parsed_orders, 'total_orders': total_orders, 'total_bottle_count': total_bottle,
+        'new_order_bottle_count': new_bottle, 'repeat_order_bottle_count': repeat_bottle,
+        'performance_list': [{'agent': k, 'n': v['n'], 'r': v['r']} for k, v in agent_perf.items()]
+    })
+
+@login_required
+def admin_update_status(request, order_id):
+    if request.method == 'POST':
+        o = Order.objects.get(id=order_id)
+        o.status = 'Pending' if (request.POST.get('status') == 'Generated' and o.status == 'Generated') else request.POST.get('status')
+        o.save()
+    return redirect('dashboard')
+
+@login_required
+def emp_dashboard_view(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'search_phone':
+        q = request.GET.get('phone', '')
+        o = Order.objects.filter(phone__icontains=q).first()
+        return JsonResponse({'status': 'success', 'name': o.customer_name, 'address': o.address, 'total': o.total} if o else {'status': 'not_found'})
+    
+    # Date Filter for Employee
+    emp_s = request.GET.get('emp_start_date', ''); emp_e = request.GET.get('emp_end_date', '')
+    orders = Order.objects.all().order_by('-id')
+    if emp_s and emp_e: orders = orders.filter(date__range=[emp_s, emp_e])
+    
+    # REPEAT FLAG LOGIC IN POST
+    if request.method == 'POST':
+        # ... (Save logic) ...
+        pass
+        
+    return render(request, 'dashboard.html', {'orders': orders})
