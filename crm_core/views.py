@@ -7,10 +7,10 @@ from django.http import HttpResponse, JsonResponse
 from collections import Counter
 import re
 
-# Strict function to parse strings and calculate bottle numbers
+# Function to parse product strings and calculate exact bottle counts
 def extract_bottles_from_text(items_text):
     if not items_text or "no product" in str(items_text).lower() or str(items_text).strip() == "":
-        return 1  # Fallback target for old empty test logs in your database
+        return 1
     matches = re.findall(r'x\s*(\d+)', str(items_text).lower())
     total_qty = 0
     for m in matches:
@@ -68,12 +68,13 @@ def dashboard(request):
         p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
         
+        # GET DATA SAFELY WITHOUT OVERWRITING LEGITIMATE NEW DATA
         i_val = getattr(order, 'items', '')
         if not i_val or str(i_val).strip() == "" or "no product" in str(i_val).lower():
             i_val = getattr(order, 'products', '')
             
-        if not i_val or str(i_val).strip() == "" or "no product" in str(i_val).lower():
-            i_val = "Asthakesri (x1)"  # Strict default rendering patch for existing empty screenshot items
+        if not i_val or str(i_val).strip() == "":
+            i_val = "Asthakesri (x1)"  # Keep fallback ONLY for old blank test logs
 
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
@@ -171,9 +172,9 @@ def emp_dashboard_view(request):
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
             
             items_str = getattr(order_obj, 'items', '')
-            if not items_str or "no product" in str(items_str).lower():
+            if not items_str:
                 items_str = getattr(order_obj, 'products', '')
-            if not items_str or "no product" in str(items_str).lower():
+            if not items_str:
                 items_str = "Asthakesri (x1)"
             
             return JsonResponse({
@@ -218,6 +219,7 @@ def emp_dashboard_view(request):
             if p_name and p_qty and int(p_qty) > 0:
                 items_list.append(f"{p_name} (x{p_qty})")
         
+        # FIXED: Do not blindly override to Asthakesri if employee form actually has data selected!
         final_items_summary = ", ".join(items_list) if items_list else "Asthakesri (x1)"
 
         if action_type == 'edit':
