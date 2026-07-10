@@ -12,20 +12,18 @@ def extract_bottles_from_text(items_text):
     if not items_text:
         return 0
     import re
-    # Matches patterns like (x2) or (x 5) or x3
     matches = re.findall(r'x\s*(\d+)', items_text.lower())
     total_qty = 0
     for m in matches:
         try: total_qty += int(m)
         except ValueError: pass
-    # Fallback: if no (xN) pattern found but there is text, assume at least 1 bottle per item comma-separated
     if total_qty == 0 and items_text.strip() and "no product" not in items_text.lower():
         total_qty = len([i for i in items_text.split(',') if i.strip()])
     return total_qty
 
 @login_required
 def dashboard(request):
-    # Strict validation: Only staff or superusers can enter admin control
+    # Strict validation: Admin panel requires explicit staff or superuser privileges
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
@@ -45,7 +43,7 @@ def dashboard(request):
 
     total_orders = orders.count()
 
-    # Repeat logic base on full phone numbers pool
+    # Repeat logic base pool
     all_global_orders = Order.objects.all()
     raw_phone_pool = []
     for o in all_global_orders:
@@ -57,12 +55,9 @@ def dashboard(request):
                 
     phone_counts = Counter(raw_phone_pool)
 
-    # Metrics Counters initialization
     total_bottle_count = 0
     new_order_bottle_count = 0
     repeat_order_bottle_count = 0
-    
-    # Agent Performance Map initialization
     agent_perf_map = {}
     
     parsed_orders = []
@@ -72,11 +67,9 @@ def dashboard(request):
         i_val = getattr(order, 'items', getattr(order, 'products', 'No Product Data'))
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
-        # Determine Employee name safely
         raw_emp = getattr(order, 'emp', getattr(order, 'employee', 'System'))
         emp_name = getattr(raw_emp, 'username', str(raw_emp))
         
-        # Calculate repeat status
         is_repeat = False
         if p_val:
             for segment in p_val.split('/'):
@@ -85,7 +78,6 @@ def dashboard(request):
                     is_repeat = True
                     break
                     
-        # Calculate specific bottle counts for this order row
         bottles_in_order = extract_bottles_from_text(i_val)
         
         total_bottle_count += bottles_in_order
@@ -94,7 +86,6 @@ def dashboard(request):
         else:
             new_order_bottle_count += bottles_in_order
 
-        # Populate Agent performance map logs
         if emp_name not in agent_perf_map:
             agent_perf_map[emp_name] = {'pending': 0, 'generated': 0, 'cancelled': 0, 'total_sales': 0.0}
             
@@ -125,7 +116,6 @@ def dashboard(request):
             'is_repeat': is_repeat
         })
 
-    # Convert agent performance map to structured list for template rendering
     performance_list = []
     for agent, metrics in agent_perf_map.items():
         performance_list.append({
@@ -276,7 +266,6 @@ def emp_dashboard_view(request):
     except Exception:
         my_orders = []
 
-    # Count repeat logic for employee table display
     raw_phones_all = []
     for o in Order.objects.all():
         ph_str = getattr(o, 'phone', getattr(o, 'customer_phone', ''))
@@ -669,3 +658,4 @@ def emp_dashboard_view(request):
     </body>
     </html>
     """
+    return HttpResponse(html_content)
