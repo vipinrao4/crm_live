@@ -1,10 +1,10 @@
 from pathlib import Path
 import os
+import dj_database_url
 
-# 1. BASE_DIR yahan define hona chahiye
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-your-key-here' # Apna purana key yahan daal dena
+SECRET_KEY = 'django-insecure-your-key-here'
 DEBUG = True
 ALLOWED_HOSTS = ['crm-live-pyzh.onrender.com', 'localhost', '127.0.0.1', '*']
 
@@ -31,7 +31,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'divjot_crm_backend.urls'
 
-# 2. TEMPLATES mein BASE_DIR ab kaam karega
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -50,11 +49,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'divjot_crm_backend.wsgi.application'
 
+# RESTORED LIVE POSTGRESQL PRODUCTION DATABASE
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='postgresql://divjot_db_user:VR9Uoc7Xl4CrOPuhCOIHXykEuACOscoi@dpg-d97mpd3eo5us73a7tbb0-a.singapore-postgres.render.com/divjot_db',
+        conn_max_age=600
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = []

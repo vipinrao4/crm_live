@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth import authenticate, login as django_login
 from django.http import JsonResponse
 from .models import Order
 from django.db.models import Q
 
+def is_admin(user):
+    return user.is_authenticated and (user.is_staff or user.is_superuser)
+
 def custom_login(request):
-    # Agar pehle se login hai, toh seedha andar bhejo
     if request.user.is_authenticated:
         if request.user.is_staff or request.user.is_superuser:
             return redirect('/')
@@ -17,12 +19,9 @@ def custom_login(request):
         u = request.POST.get('username')
         p = request.POST.get('password')
         
-        # Django Auth check
         user = authenticate(request, username=u, password=p)
         if user is not None:
-            login(request, user) # Session create ho gaya
-            
-            # Admin hai toh admin panel, warna employee panel
+            django_login(request, user)
             if user.is_staff or user.is_superuser:
                 return redirect('/')
             else:
@@ -32,13 +31,9 @@ def custom_login(request):
             
     return render(request, 'crm_core/login.html', {'error': error_msg})
 
-@login_required(login_url='/accounts/login/')
+@user_passes_test(is_admin, login_url='/accounts/login/')
 def dashboard(request):
-    # Agar employee galti se admin par aaye toh wapas bhejo
-    if not request.user.is_staff and not request.user.is_superuser:
-        return redirect('/employee/dashboard/')
-        
-    return render(request, 'crm_core/admin_control.html', {})
+    return render(request, 'crm_core/admin_control.html', {'orders': Order.objects.all().order_by('-id')})
 
 @login_required(login_url='/accounts/login/')
 def emp_dashboard_view(request):
@@ -46,8 +41,8 @@ def emp_dashboard_view(request):
         q = request.GET.get('phone', '')
         o = Order.objects.filter(Q(phone__icontains=q)).first()
         return JsonResponse({'status': 'success', 'name': o.customer_name, 'address': o.address, 'total': o.total} if o else {'status': 'not_found'})
-        
-    return render(request, 'crm_core/dashboard.html', {'orders': Order.objects.all()})
+    
+    return render(request, 'crm_core/dashboard.html', {'orders': Order.objects.all().order_by('-id')})
 
 @login_required(login_url='/accounts/login/')
 def admin_update_status(request, order_id):
