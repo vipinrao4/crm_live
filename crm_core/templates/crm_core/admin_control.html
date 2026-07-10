@@ -20,19 +20,19 @@
         <a href="/accounts/logout/" class="btn btn-outline-danger btn-sm fw-bold px-3">Logout</a>
     </div>
 
-    <div class="card p-3 bg-white mb-4">
+    <div class="card p-3 bg-white mb-4 shadow-sm">
         <form method="GET" action="" class="row g-3 align-items-end">
-            <div class="col-md-4 col-sm-5">
+            <div class="col-md-4">
                 <label class="form-label small fw-bold text-muted">Start Date</label>
                 <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}">
             </div>
-            <div class="col-md-4 col-sm-5">
+            <div class="col-md-4">
                 <label class="form-label small fw-bold text-muted">End Date</label>
                 <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}">
             </div>
-            <div class="col-md-4 col-sm-2 d-flex gap-2">
+            <div class="col-md-4 d-flex gap-2">
                 <button type="submit" class="btn btn-danger btn-sm fw-bold w-100">Filter Range</button>
-                <a href="/admin-control/" class="btn btn-outline-secondary btn-sm fw-bold w-50">Reset</a>
+                <a href="/" class="btn btn-outline-secondary btn-sm fw-bold w-50">Reset</a>
             </div>
         </form>
     </div>
@@ -59,8 +59,8 @@
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-xl-8 col-lg-7">
-            <div class="card p-4 bg-white h-100">
+        <div class="col-xl-7 col-lg-6">
+            <div class="card p-4 bg-white h-100 shadow-sm">
                 <div class="mb-3 border-bottom pb-2">
                     <h5 class="mb-0 fw-bold text-dark">Master Order Log Database (Filtered: {{ total_orders }})</h5>
                 </div>
@@ -86,7 +86,7 @@
                                     <b>{{ order.customer_name }}</b><br>
                                     <small class="text-muted">{{ order.phone }}</small>
                                 </td>
-                                <td class="text-wrap" style="max-width: 200px; font-size: 12px;">{{ order.address }}</td>
+                                <td class="text-wrap" style="max-width: 180px; font-size: 12px;">{{ order.address }}</td>
                                 <td><span class="fw-semibold text-secondary">{{ order.items }}</span></td>
                                 <td class="fw-bold text-dark">₹{{ order.total }}</td>
                                 <td>
@@ -123,34 +123,36 @@
             </div>
         </div>
 
-        <div class="col-xl-4 col-lg-5">
-            <div class="card p-4 bg-white h-100">
+        <div class="col-xl-5 col-lg-6">
+            <div class="card p-4 bg-white h-100 shadow-sm">
                 <div class="mb-3 border-bottom pb-2">
                     <h5 class="mb-0 fw-bold text-dark">Employee Agent Performance Data</h5>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-striped align-middle border mb-0 small">
+                    <table class="table table-striped align-middle border mb-0 small" id="perfTable">
                         <thead class="table-light text-muted text-uppercase" style="font-size: 11px;">
                             <tr>
-                                <th>Agent Name</th>
-                                <th class="text-center">Pnd / Gen / Cnl</th>
-                                <th class="text-end">Sales Volume</th>
+                                <th>Emp Name</th>
+                                <th class="text-center">New Order<br>(Bottle Count)</th>
+                                <th class="text-center">Repeat<br>(Bottle Count)</th>
+                                <th class="text-center" style="width: 110px;">Ad Spent (₹)</th>
+                                <th class="text-end" style="width: 90px;">Average</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for perf in performance_list %}
-                            <tr>
+                            <tr class="agent-row">
                                 <td class="fw-bold text-dark">{{ perf.agent }}</td>
+                                <td class="text-center new-bottles-val fw-bold text-success">{{ perf.new_bottles }}</td>
+                                <td class="text-center fw-bold text-warning">{{ perf.repeat_bottles }}</td>
                                 <td class="text-center">
-                                    <span class="text-warning fw-bold">{{ perf.pending }}</span> /
-                                    <span class="text-success fw-bold">{{ perf.generated }}</span> /
-                                    <span class="text-danger fw-bold">{{ perf.cancelled }}</span>
+                                    <input type="number" min="0" placeholder="Fill" class="form-control form-control-sm text-center ad-spent-input px-1" style="height: 28px; font-size: 12px;" oninput="calculateRowAverage(this)">
                                 </td>
-                                <td class="text-end fw-bold text-primary">₹{{ perf.sales|floatformat:2 }}</td>
+                                <td class="text-end fw-bold text-danger avg-output-cell">₹0.00</td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="3" class="text-center text-muted py-4">No active agents active in this timeframe.</td>
+                                <td colspan="5" class="text-center text-muted py-4">No active employee performance log data found.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -162,21 +164,33 @@
 </div>
 
 <script>
+    // Formula equation implementation: Average = Ad Spent / New Order (Bottle Count)
+    function calculateRowAverage(inputElement) {
+        const row = inputElement.closest('.agent-row');
+        const newBottlesCount = parseInt(row.querySelector('.new-bottles-val').innerText) || 0;
+        const adSpentVal = parseFloat(inputElement.value) || 0;
+        const avgCell = row.querySelector('.avg-output-cell');
+        
+        if (newBottlesCount > 0 && adSpentVal > 0) {
+            const finalAverage = adSpentVal / newBottlesCount;
+            avgCell.innerText = '₹' + finalAverage.toFixed(2);
+        } else {
+            avgCell.innerText = '₹0.00';
+        }
+    }
+
     function sendWhatsApp(phoneField, name, items, total, address) {
-        // Clean phone number from multiple numbers layout (split by '/' and pick first one)
         let primaryPhone = phoneField.split('/')[0].replace(/\D/g, '').trim();
         if (primaryPhone.length > 10) {
             primaryPhone = primaryPhone.slice(-10);
         }
         
-        // Clean up text text variables to safe characters format
         let safeItems = items.replace(/[&#+]/g, ' ');
         let safeAddress = address.replace(/[&#+]/g, ' ');
 
         let textMessage = `Hello *${name}*,\n\nDivjot Ayurveda se aapka order confirm ho gaya hai.\n\n*Products:* ${safeItems}\n*Total Amount:* ₹${total}\n*Address:* ${safeAddress}\n\nThank You!`;
         let encodedText = encodeURIComponent(textMessage);
         
-        // Universal redirection to standard mobile/web application API
         let whatsappUrl = `https://api.whatsapp.com/send?phone=91${primaryPhone}&text=${encodedText}`;
         window.open(whatsappUrl, '_blank');
     }

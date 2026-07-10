@@ -5,7 +5,6 @@ from django.db.models import Q
 from datetime import datetime
 from django.http import HttpResponse, JsonResponse
 from collections import Counter
-from django.contrib.auth.models import User
 
 # Helper function to extract bottle counts from order items summary text
 def extract_bottles_from_text(items_text):
@@ -23,11 +22,10 @@ def extract_bottles_from_text(items_text):
 
 @login_required
 def dashboard(request):
-    # Strict validation: Admin panel requires explicit staff or superuser privileges
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
-    # Date Filter Logic
+    # ADMIN PANEL: Date Filter Logic
     start_date_str = request.GET.get('start_date', '').strip()
     end_date_str = request.GET.get('end_date', '').strip()
     
@@ -43,7 +41,7 @@ def dashboard(request):
 
     total_orders = orders.count()
 
-    # Repeat logic base pool
+    # Repeat logic pool setup
     all_global_orders = Order.objects.all()
     raw_phone_pool = []
     for o in all_global_orders:
@@ -86,22 +84,14 @@ def dashboard(request):
         else:
             new_order_bottle_count += bottles_in_order
 
+        # Initialize agent metrics with the requested column structures
         if emp_name not in agent_perf_map:
-            agent_perf_map[emp_name] = {'pending': 0, 'generated': 0, 'cancelled': 0, 'total_sales': 0.0}
+            agent_perf_map[emp_name] = {'new_bottles': 0, 'repeat_bottles': 0}
             
-        status_clean = str(order.status).lower().strip()
-        if 'pending' in status_clean:
-            agent_perf_map[emp_name]['pending'] += 1
-        elif 'generated' in status_clean:
-            agent_perf_map[emp_name]['generated'] += 1
-        elif 'cancel' in status_clean:
-            agent_perf_map[emp_name]['cancelled'] += 1
-            
-        try:
-            if 'cancel' not in status_clean:
-                agent_perf_map[emp_name]['total_sales'] += float(t_val or 0)
-        except Exception:
-            pass
+        if is_repeat:
+            agent_perf_map[emp_name]['repeat_bottles'] += bottles_in_order
+        else:
+            agent_perf_map[emp_name]['new_bottles'] += bottles_in_order
 
         parsed_orders.append({
             'id': order.id,
@@ -120,10 +110,8 @@ def dashboard(request):
     for agent, metrics in agent_perf_map.items():
         performance_list.append({
             'agent': agent,
-            'pending': metrics['pending'],
-            'generated': metrics['generated'],
-            'cancelled': metrics['cancelled'],
-            'sales': metrics['total_sales']
+            'new_bottles': metrics['new_bottles'],
+            'repeat_bottles': metrics['repeat_bottles']
         })
 
     context = {
@@ -260,7 +248,20 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
+    # EMPLOYEE PANEL: Date Filter Request logic
+    emp_start_date = request.GET.get('emp_start_date', '').strip()
+    emp_end_date = request.GET.get('emp_end_date', '').strip()
+
     orders_query = Order.objects.all()
+    
+    if emp_start_date and emp_end_date:
+        try:
+            es_date = datetime.strptime(emp_start_date, '%Y-%m-%d').date()
+            ee_date = datetime.strptime(emp_end_date, '%Y-%m-%d').date()
+            orders_query = orders_query.filter(date__range=[es_date, ee_date])
+        except Exception:
+            pass
+
     try:
         my_orders = orders_query.order_by('-id')
     except Exception:
@@ -360,6 +361,23 @@ def emp_dashboard_view(request):
             </div>
             
             {alert_box}
+
+            <div class="card p-3 bg-white mb-4 shadow-sm">
+                <form method="GET" action="" class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Mera Start Date Filter</label>
+                        <input type="date" name="emp_start_date" class="form-control form-control-sm" value="{emp_start_date}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">Mera End Date Filter</label>
+                        <input type="date" name="emp_end_date" class="form-control form-control-sm" value="{emp_end_date}">
+                    </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-dark btn-sm fw-bold w-100">Filter Karein</button>
+                        <a href="/employee/dashboard/" class="btn btn-outline-secondary btn-sm fw-bold w-50">Reset</a>
+                    </div>
+                </form>
+            </div>
 
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
