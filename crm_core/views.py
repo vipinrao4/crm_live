@@ -10,7 +10,7 @@ def dashboard(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
-    # ADMIN DATA LOAD - Asli correct fields ke sath bina kisi breakdown ke
+    # ADMIN DATA LOAD - Asli fields ke sath real database queries
     try:
         orders = Order.objects.all().order_by('-id')
         total_orders = orders.count()
@@ -52,7 +52,7 @@ def dashboard(request):
     return render(request, 'crm_core/admin_control.html', context)
 
 
-# ADMIN ACTION REDIRECT STATUS UPDATE CONTROLLER
+# ADMIN ACTION STATUS UPDATE CONTROLLER
 @login_required
 def admin_update_status(request, order_id):
     if request.user.is_staff or request.user.is_superuser:
@@ -78,7 +78,8 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            p_parts = order_obj.phone.split('/') if order_obj.phone else ["", ""]
+            phone_str = getattr(order_obj, 'phone', '')
+            p_parts = phone_str.split('/') if phone_str else ["", ""]
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
             
@@ -148,9 +149,8 @@ def emp_dashboard_view(request):
             try:
                 new_order = Order()
                 new_order.customer_name = customer_name
-                new_order.status = 'Pending'
+                new_order.status = 'Pending'  # Default state set to Pending
                 
-                # Model compatibility layer assignment mapping
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
                     if hasattr(new_order, e_attr):
                         try: setattr(new_order, e_attr, user_instance)
@@ -461,6 +461,30 @@ def emp_dashboard_view(request):
                 "Gastro": 600
             }};
 
+            document.getElementById('pincode').addEventListener('input', function() {{
+                const pin = this.value.trim();
+                if(pin.length === 6) {{
+                    const poSelect = document.getElementById('post_office');
+                    poSelect.innerHTML = '<option value="">Loading...</option>';
+                    fetch(`https://api.postalpincode.in/pincode/${{pin}}`)
+                    .then(res => res.json())
+                    .then(data => {{
+                        if(data[0].Status === "Success") {{
+                            const postOffices = data[0].PostOffice;
+                            poSelect.innerHTML = '';
+                            postOffices.forEach(po => {{
+                                const opt = document.createElement('option');
+                                opt.value = po.Name; opt.innerText = po.Name;
+                                poSelect.appendChild(opt);
+                            }});
+                            document.getElementById('district').value = postOffices[0].District;
+                            document.getElementById('state').value = postOffices[0].State;
+                            document.getElementById('tehsil').value = postOffices[0].Block || postOffices[0].District;
+                        }}
+                    }});
+                }}
+            }});
+
             function updateRowPrice(selectElement, rowIndex) {{
                 const prodName = selectElement.value;
                 const priceInput = document.getElementById('price_' + rowIndex);
@@ -497,30 +521,6 @@ def emp_dashboard_view(request):
                 if(grandT <= 0) {{
                     alert('Error: Product select karke quantity daalna compulsory hai!');
                     e.preventDefault();
-                }}
-            }});
-
-            document.getElementById('pincode').addEventListener('input', function() {{
-                const pin = this.value.trim();
-                if(pin.length === 6) {{
-                    const poSelect = document.getElementById('post_office');
-                    poSelect.innerHTML = '<option value="">Loading...</option>';
-                    fetch(`https://api.postalpincode.in/pincode/${{pin}}`)
-                    .then(res => res.json())
-                    .then(data => {{
-                        if(data[0].Status === "Success") {{
-                            const postOffices = data[0].PostOffice;
-                            poSelect.innerHTML = '';
-                            postOffices.forEach(po => {{
-                                const opt = document.createElement('option');
-                                opt.value = po.Name; opt.innerText = po.Name;
-                                poSelect.appendChild(opt);
-                            }});
-                            document.getElementById('district').value = postOffices[0].District;
-                            document.getElementById('state').value = postOffices[0].State;
-                            document.getElementById('tehsil').value = postOffices[0].Block || postOffices[0].District;
-                        }}
-                    }});
                 }}
             }});
 
