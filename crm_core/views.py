@@ -4,40 +4,79 @@ from .models import Order
 from django.db.models import Q
 from datetime import datetime
 from django.http import HttpResponse, JsonResponse
+from collections import Counter
+from django.contrib.auth.models import User
+
+# Helper function to extract bottle counts from order items summary text
+def extract_bottles_from_text(items_text):
+    if not items_text:
+        return 0
+    import re
+    # Matches patterns like (x2) or (x 5) or x3
+    matches = re.findall(r'x\s*(\d+)', items_text.lower())
+    total_qty = 0
+    for m in matches:
+        try: total_qty += int(m)
+        except ValueError: pass
+    # Fallback: if no (xN) pattern found but there is text, assume at least 1 bottle per item comma-separated
+    if total_qty == 0 and items_text.strip() and "no product" not in items_text.lower():
+        total_qty = len([i for i in items_text.split(',') if i.strip()])
+    return total_qty
 
 @login_required
 def dashboard(request):
+    # Strict validation: Only staff or superusers can enter admin control
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
-    try:
-        orders = Order.objects.all().order_by('-id')
-        total_orders = orders.count()
-    except Exception:
-        orders = []
-        total_orders = 0
+    # Date Filter Logic
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+    
+    orders = Order.objects.all().order_by('-id')
+    
+    if start_date_str and end_date_str:
+        try:
+            s_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            e_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            orders = orders.filter(date__range=[s_date, e_date])
+        except Exception:
+            pass
 
-    # SAFE FIELD LOOKUP FOR COUNTERS
+    total_orders = orders.count()
+
+    # Repeat logic base on full phone numbers pool
+    all_global_orders = Order.objects.all()
     raw_phone_pool = []
-    for order in orders:
-        p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
+    for o in all_global_orders:
+        p_val = getattr(o, 'phone', getattr(o, 'customer_phone', ''))
         if p_val:
             for num in p_val.split('/'):
                 c_num = num.strip()
                 if c_num: raw_phone_pool.append(c_num)
                 
-    from collections import Counter
     phone_counts = Counter(raw_phone_pool)
+
+    # Metrics Counters initialization
+    total_bottle_count = 0
+    new_order_bottle_count = 0
+    repeat_order_bottle_count = 0
     
-    repeat_counter = 0
+    # Agent Performance Map initialization
+    agent_perf_map = {}
+    
     parsed_orders = []
-    
     for order in orders:
         p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
         i_val = getattr(order, 'items', getattr(order, 'products', 'No Product Data'))
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
+        # Determine Employee name safely
+        raw_emp = getattr(order, 'emp', getattr(order, 'employee', 'System'))
+        emp_name = getattr(raw_emp, 'username', str(raw_emp))
+        
+        # Calculate repeat status
         is_repeat = False
         if p_val:
             for segment in p_val.split('/'):
@@ -45,15 +84,38 @@ def dashboard(request):
                 if seg_clean and phone_counts[seg_clean] > 1:
                     is_repeat = True
                     break
+                    
+        # Calculate specific bottle counts for this order row
+        bottles_in_order = extract_bottles_from_text(i_val)
         
+        total_bottle_count += bottles_in_order
         if is_repeat:
-            repeat_counter += 1
+            repeat_order_bottle_count += bottles_in_order
+        else:
+            new_order_bottle_count += bottles_in_order
 
-        # Binding pure python primitives safely to bypass model attributes template rendering crashes
+        # Populate Agent performance map logs
+        if emp_name not in agent_perf_map:
+            agent_perf_map[emp_name] = {'pending': 0, 'generated': 0, 'cancelled': 0, 'total_sales': 0.0}
+            
+        status_clean = str(order.status).lower().strip()
+        if 'pending' in status_clean:
+            agent_perf_map[emp_name]['pending'] += 1
+        elif 'generated' in status_clean:
+            agent_perf_map[emp_name]['generated'] += 1
+        elif 'cancel' in status_clean:
+            agent_perf_map[emp_name]['cancelled'] += 1
+            
+        try:
+            if 'cancel' not in status_clean:
+                agent_perf_map[emp_name]['total_sales'] += float(t_val or 0)
+        except Exception:
+            pass
+
         parsed_orders.append({
             'id': order.id,
             'date': order.date if hasattr(order, 'date') else None,
-            'emp': getattr(order, 'emp', getattr(order, 'employee', 'System')),
+            'emp': emp_name,
             'customer_name': order.customer_name,
             'phone': p_val,
             'address': a_val,
@@ -63,11 +125,26 @@ def dashboard(request):
             'is_repeat': is_repeat
         })
 
+    # Convert agent performance map to structured list for template rendering
+    performance_list = []
+    for agent, metrics in agent_perf_map.items():
+        performance_list.append({
+            'agent': agent,
+            'pending': metrics['pending'],
+            'generated': metrics['generated'],
+            'cancelled': metrics['cancelled'],
+            'sales': metrics['total_sales']
+        })
+
     context = {
         'orders': parsed_orders,
         'total_orders': total_orders,
-        'total_products_sold': total_orders,
-        'repeat_orders_count': repeat_counter,
+        'total_bottle_count': total_bottle_count,
+        'new_order_bottle_count': new_order_bottle_count,
+        'repeat_order_bottle_count': repeat_order_bottle_count,
+        'performance_list': performance_list,
+        'start_date': start_date_str,
+        'end_date': end_date_str
     }
     return render(request, 'crm_core/admin_control.html', context)
 
@@ -199,6 +276,16 @@ def emp_dashboard_view(request):
     except Exception:
         my_orders = []
 
+    # Count repeat logic for employee table display
+    raw_phones_all = []
+    for o in Order.objects.all():
+        ph_str = getattr(o, 'phone', getattr(o, 'customer_phone', ''))
+        if ph_str:
+            for num in ph_str.split('/'):
+                c_num = num.strip()
+                if c_num: raw_phones_all.append(c_num)
+    phone_counts_global = Counter(raw_phones_all)
+
     total_orders_count = len(my_orders)
     total_sales_amount = 0
     repeat_counter = 0
@@ -221,7 +308,7 @@ def emp_dashboard_view(request):
         if p_val:
             for segment in p_val.split('/'):
                 seg_clean = segment.strip()
-                if seg_clean and phone_counts[seg_clean] > 1:
+                if seg_clean and phone_counts_global[seg_clean] > 1:
                     is_repeat = True
                     break
         
@@ -257,7 +344,6 @@ def emp_dashboard_view(request):
     if not orders_rows:
         orders_rows = """<tr><td colspan="7" class="text-center text-muted py-4">Koi order logs nahi mile.</td></tr>"""
 
-    from django.http import HttpResponse
     success_msg = "Order successfully submit ho gaya!" if message == "success" else "Updates successfully save ho gaye hain!"
     alert_box = f'<div class="alert alert-success fw-bold shadow-sm mb-3">➔ {success_msg}</div>' if message in ["success", "update_success"] else ""
     if "error" in message:
@@ -583,4 +669,3 @@ def emp_dashboard_view(request):
     </body>
     </html>
     """
-    return HttpResponse(html_content)
