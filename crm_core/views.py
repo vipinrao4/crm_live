@@ -36,7 +36,6 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            # Break phone segments if split by /
             p_parts = order_obj.phone.split('/')
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
@@ -55,16 +54,15 @@ def emp_dashboard_view(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # 1. HANDLE POST REQUESTS (NEW ENTRY OR INLINE EDIT UPDATES)
+    # 1. HANDLE POST REQUESTS (NEW ENTRY OR EDITS)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
         phone1 = request.POST.get('phone1', '').strip()
         phone2 = request.POST.get('phone2', '').strip()
-        items = request.POST.get('items')
         total = request.POST.get('total', 0)
         
-        # Capture address segments
+        # Capture Address Block Data
         pincode = request.POST.get('pincode', '').strip()
         post_office = request.POST.get('post_office', '').strip()
         tehsil = request.POST.get('tehsil', '').strip()
@@ -72,7 +70,6 @@ def emp_dashboard_view(request):
         state = request.POST.get('state', '').strip()
         address_line = request.POST.get('address_line', '').strip()
         
-        # Build unified address string if pincode data exists, else use raw submitted block
         if pincode:
             full_address = f"{address_line}, PO: {post_office}, Tehsil: {tehsil}, Dist: {district}, {state} - {pincode}"
         else:
@@ -80,8 +77,17 @@ def emp_dashboard_view(request):
             
         combined_phones = f"{phone1} / {phone2}" if phone2 else phone1
 
+        # Process the 3 Dynamic Products rows to create a clean text summary string
+        items_list = []
+        for i in range(1, 4):
+            p_name = request.POST.get(f'prod_{i}')
+            p_qty = request.POST.get(f'qty_{i}', '0')
+            if p_name and p_qty and int(p_qty) > 0:
+                items_list.append(f"{p_name} (x{p_qty})")
+        
+        final_items_summary = ", ".join(items_list) if items_list else "No Product Selected"
+
         if action_type == 'edit':
-            # Handle modification only if state is still Generated
             order_id = request.POST.get('order_id')
             try:
                 target_order = Order.objects.get(id=order_id)
@@ -89,23 +95,24 @@ def emp_dashboard_view(request):
                     target_order.customer_name = customer_name
                     target_order.phone = combined_phones
                     target_order.address = full_address
-                    target_order.items = items
+                    # Only override items if newly selected, otherwise maintain structure
+                    if items_list:
+                        target_order.items = final_items_summary
                     target_order.total = total
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status badal chuka hai, ab aap ise edit nahi kar sakte!"
+                    message = "error: Status change ho chuka hai, ab edit lock hai!"
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
-            # Create fresh entity entry block
             try:
                 Order.objects.create(
                     emp=username,
                     customer_name=customer_name,
                     phone=combined_phones,
                     address=full_address,
-                    items=items,
+                    items=final_items_summary,
                     total=total,
                     status='Generated'
                 )
@@ -113,7 +120,7 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # 2. SELECTION METRICS & FILTERS LOOKUP
+    # 2. FILTERS & DATA LOOKUP
     search_phone = request.GET.get('search_phone', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
@@ -140,7 +147,7 @@ def emp_dashboard_view(request):
         my_orders = []
         all_existing_phones = []
 
-    # 3. COMPILE AND ASSESS REPEAT SYSTEM MATRIX DATA POOL
+    # 3. REPEAT CHECKING MATRIX POOL
     raw_phone_pool = []
     for p in all_existing_phones:
         for num in p.split('/'):
@@ -158,7 +165,7 @@ def emp_dashboard_view(request):
         try: total_sales_amount += float(o.total or 0)
         except ValueError: pass
 
-    # 4. PARSE ROWS GRID GRAPHICS INTERACTIVE LAYOUT
+    # 4. ROW RENDERING WITH CONDITIONAL EDIT ENGINES
     orders_rows = ""
     for order in my_orders:
         order_date_str = order.date.strftime('%d-%m-%Y') if order.date else '10-07-2026'
@@ -176,7 +183,6 @@ def emp_dashboard_view(request):
             repeat_counter += 1
             status_display += '<br><span class="badge bg-warning text-dark px-2 py-1 text-uppercase fw-bold mt-1" style="font-size:10px;">⚠️ REPEAT</span>'
 
-        # Action handling rule check: editable constraints validation engine
         if order.status == 'Generated':
             action_btn = f'<button onclick="openEditModal({order.id})" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold mt-1" style="font-size: 11px;">Edit Order</button>'
         else:
@@ -198,10 +204,10 @@ def emp_dashboard_view(request):
         """
     
     if not orders_rows:
-        orders_rows = """<tr><td colspan="7" class="text-center text-muted py-4">Koi order records nahi mile.</td></tr>"""
+        orders_rows = """<tr><td colspan="7" class="text-center text-muted py-4">Koi order logs nahi mile.</td></tr>"""
 
-    # 5. DYNAMIC FULL CONTENT INTERFACE GENERATION ENGINE
-    success_msg = "Order successfully punch ho gaya aur database me safe hai!" if message == "success" else "Order updates successfully save ho gaye hain!"
+    # 5. RENDER SYSTEM INTERFACE WITH 3 DROP DOWN ENGINE HOOKS
+    success_msg = "Order successfully punch ho gaya aur repeat metrics update ho gaye hain!" if message == "success" else "Order updates successfully save ho gaye hain!"
     alert_box = f'<div class="alert alert-success fw-bold shadow-sm mb-3">➔ {success_msg}</div>' if message in ["success", "update_success"] else ""
     if "error" in message:
         alert_box = f'<div class="alert alert-danger fw-bold shadow-sm mb-3">⚠️ {message}</div>'
@@ -274,7 +280,7 @@ def emp_dashboard_view(request):
             </div>
 
             <div class="row g-4">
-                <div class="col-xl-4 col-lg-5">
+                <div class="col-xl-5 col-lg-6">
                     <div class="card p-4 shadow-sm bg-white">
                         <h5 class="fw-bold mb-3 text-dark border-bottom pb-2" id="formTitle">Punch New Entry</h5>
                         <form method="POST" id="orderForm">
@@ -289,7 +295,7 @@ def emp_dashboard_view(request):
 
                             <div class="mb-2">
                                 <label class="form-label small fw-bold text-muted mb-1">House No. / Gali / Colony Address / Village / Near By</label>
-                                <input type="text" name="address_line" id="c_addr_line" class="form-control form-control-sm" required placeholder="Complete detailed address segment...">
+                                <input type="text" name="address_line" id="c_addr_line" class="form-control form-control-sm" required placeholder="Complete detailed shipping address...">
                             </div>
 
                             <div class="row g-2 mb-2">
@@ -333,22 +339,73 @@ def emp_dashboard_view(request):
                                 </div>
                             </div>
 
-                            <div class="mb-2">
-                                <label class="form-label small fw-bold text-muted mb-1">Product Choice</label>
-                                <select name="items" id="c_items" class="form-select form-select-sm" required>
-                                    <option value="">-- Select Product --</option>
-                                    <option value="Asthakesri">Asthakesri</option>
-                                    <option value="Immunity booster">Immunity booster</option>
-                                    <option value="Pain Tablet">Pain Tablet</option>
-                                    <option value="Pain Oil">Pain Oil</option>
-                                    <option value="Onion Oil">Onion Oil</option>
-                                    <option value="Gastro">Gastro</option>
-                                </select>
+                            <div class="mb-3 border rounded p-2 bg-light">
+                                <label class="form-label small fw-bold text-danger mb-2 d-block text-uppercase">Product Choice Ledger (Max 3 Types)</label>
+                                
+                                <div class="row g-1 align-items-center mb-2 item-row">
+                                    <div class="col-6">
+                                        <select name="prod_1" class="form-select form-select-sm prod-select" onchange="updateRowPrice(this, 1)">
+                                            <option value="">-- Product 1 --</option>
+                                            <option value="Asthakesri">Asthakesri</option>
+                                            <option value="Immunity booster">Immunity booster</option>
+                                            <option value="Pain Tablet">Pain Tablet</option>
+                                            <option value="Pain Oil">Pain Oil</option>
+                                            <option value="Onion Oil">Onion Oil</option>
+                                            <option value="Gastro">Gastro</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="qty_1" placeholder="Qty" min="0" value="0" class="form-control form-control-sm qty-input" oninput="calculateGrandTotal()">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" id="price_1" readonly placeholder="Price" class="form-control form-control-sm bg-white text-muted">
+                                    </div>
+                                </div>
+
+                                <div class="row g-1 align-items-center mb-2 item-row">
+                                    <div class="col-6">
+                                        <select name="prod_2" class="form-select form-select-sm prod-select" onchange="updateRowPrice(this, 2)">
+                                            <option value="">-- Product 2 --</option>
+                                            <option value="Asthakesri">Asthakesri</option>
+                                            <option value="Immunity booster">Immunity booster</option>
+                                            <option value="Pain Tablet">Pain Tablet</option>
+                                            <option value="Pain Oil">Pain Oil</option>
+                                            <option value="Onion Oil">Onion Oil</option>
+                                            <option value="Gastro">Gastro</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="qty_2" placeholder="Qty" min="0" value="0" class="form-control form-control-sm qty-input" oninput="calculateGrandTotal()">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" id="price_2" readonly placeholder="Price" class="form-control form-control-sm bg-white text-muted">
+                                    </div>
+                                </div>
+
+                                <div class="row g-1 align-items-center item-row">
+                                    <div class="col-6">
+                                        <select name="prod_3" class="form-select form-select-sm prod-select" onchange="updateRowPrice(this, 3)">
+                                            <option value="">-- Product 3 --</option>
+                                            <option value="Asthakesri">Asthakesri</option>
+                                            <option value="Immunity booster">Immunity booster</option>
+                                            <option value="Pain Tablet">Pain Tablet</option>
+                                            <option value="Pain Oil">Pain Oil</option>
+                                            <option value="Onion Oil">Onion Oil</option>
+                                            <option value="Gastro">Gastro</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="qty_3" placeholder="Qty" min="0" value="0" class="form-control form-control-sm qty-input" oninput="calculateGrandTotal()">
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" id="price_3" readonly placeholder="Price" class="form-control form-control-sm bg-white text-muted">
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label small fw-bold text-muted mb-1">Grand Total Final Price (₹)</label>
-                                <input type="number" name="total" id="c_total" class="form-control form-control-sm" required placeholder="0.00">
+                                <label class="form-label small fw-bold text-dark mb-1">Grand Total Final Price (₹)</label>
+                                <input type="number" name="total" id="c_total" class="form-control form-control-sm bg-light fw-bold text-danger fs-5" readonly value="0">
                             </div>
 
                             <div class="d-flex gap-2">
@@ -359,7 +416,7 @@ def emp_dashboard_view(request):
                     </div>
                 </div>
 
-                <div class="col-xl-8 col-lg-7">
+                <div class="col-xl-7 col-lg-6">
                     <div class="card p-4 shadow-sm bg-white">
                         <h5 class="fw-bold mb-3 text-dark border-bottom pb-2">Master Orders Log Database</h5>
                         <div class="table-responsive">
@@ -369,10 +426,10 @@ def emp_dashboard_view(request):
                                         <th>Date</th>
                                         <th>Agent</th>
                                         <th>Customer & Phones</th>
-                                        <th>Shipping Address</th>
-                                        <th>Products</th>
-                                        <th>Total Price</th>
-                                        <th>Status Actions</th>
+                                        <th>Address Info</th>
+                                        <th>Products Sold</th>
+                                        <th>Grand Total</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -386,10 +443,48 @@ def emp_dashboard_view(request):
         </div>
 
         <script>
-            // Strict number string filters checks validation
+            // Base catalog mapping prices matrix lookup table
+            const priceCatalog = {{
+                "Asthakesri": 1500,
+                "Immunity booster": 900,
+                "Pain Tablet": 450,
+                "Pain Oil": 350,
+                "Onion Oil": 290,
+                "Gastro": 600
+            }};
+
+            function updateRowPrice(selectElement, rowIndex) {{
+                const prodName = selectElement.value;
+                const priceInput = document.getElementById('price_' + rowIndex);
+                const qtyInput = document.getElementsByName('qty_' + rowIndex)[0];
+                
+                if(prodName && priceCatalog[prodName]) {{
+                    priceInput.value = priceCatalog[prodName];
+                    if(parseInt(qtyInput.value) === 0) {{
+                        qtyInput.value = 1; // auto set to 1 item selected minimum
+                    }}
+                }} else {{
+                    priceInput.value = '';
+                    qtyInput.value = 0;
+                }}
+                calculateGrandTotal();
+            }}
+
+            function calculateGrandTotal() {{
+                let overallTotal = 0;
+                for(let i = 1; i <= 3; i++) {{
+                    const priceVal = parseFloat(document.getElementById('price_' + i).value) || 0;
+                    const qtyVal = parseInt(document.getElementsByName('qty_' + i)[0].value) || 0;
+                    overallTotal += (priceVal * qtyVal);
+                }}
+                document.getElementById('c_total').value = overallTotal;
+            }}
+
+            // Form structural constraints phone checker logic
             document.getElementById('orderForm').addEventListener('submit', function(e) {{
                 const p1 = document.getElementById('phone1').value;
                 const p2 = document.getElementById('phone2').value;
+                const grandT = parseFloat(document.getElementById('c_total').value) || 0;
                 
                 if(p1.length !== 10 || isNaN(p1)) {{
                     alert('Error: Phone Number 1 poora 10 digit ka hona chahiye!');
@@ -399,10 +494,15 @@ def emp_dashboard_view(request):
                 if(p2.length > 0 && (p2.length !== 10 || isNaN(p2))) {{
                     alert('Error: Phone Number 2 galat hai! Ya toh khali chhodein ya poora 10 digit daalein.');
                     e.preventDefault();
+                    return;
+                }}
+                if(grandT <= 0) {{
+                    alert('Error: Kam se kam ek product select karke quantity daalna compulsory hai!');
+                    e.preventDefault();
                 }}
             }});
 
-            // Pincode Lookup Handler Engine
+            // Postal API Pincode system mapping engine
             document.getElementById('pincode').addEventListener('input', function() {{
                 const pin = this.value.trim();
                 if(pin.length === 6) {{
@@ -439,7 +539,7 @@ def emp_dashboard_view(request):
                 }}
             }});
 
-            // INLINE LIVE EDITING CONTROLLER STATE MACHINE
+            // LIVE EDITING INLINE SYSTEM
             function openEditModal(orderId) {{
                 fetch(`?action=get_order&order_id=${{orderId}}`, {{
                     headers: {{ 'X-Requested-With': 'XMLHttpRequest' }}
@@ -454,15 +554,10 @@ def emp_dashboard_view(request):
                         document.getElementById('c_name').value = data.name;
                         document.getElementById('phone1').value = data.phone1;
                         document.getElementById('phone2').value = data.phone2;
-                        document.getElementById('c_items').value = data.items;
                         document.getElementById('c_total').value = data.total;
-                        
-                        // Populate broad raw address text mapping into text component field box for clean safe editing 
                         document.getElementById('c_addr_line').value = data.address;
                         
-                        // Hide fields pincode lookup row component layout container frame to avoid overriding existing structure data flow
                         document.getElementById('pincodeSectionRow').style.display = "none";
-                        document.getElementById('pincode').required = false;
                         
                         document.getElementById('submitBtn').innerText = "Save Matrix Updates ➔";
                         document.getElementById('submitBtn').className = "btn btn-primary w-100 btn-sm fw-bold py-2";
@@ -485,6 +580,7 @@ def emp_dashboard_view(request):
                 document.getElementById('submitBtn').innerText = "Submit and Save Order ➔";
                 document.getElementById('submitBtn').className = "btn btn-danger w-100 btn-sm fw-bold py-2";
                 document.getElementById('cancelEditBtn').classList.add('d-none');
+                document.getElementById('c_total').value = 0;
             }}
         </script>
     </body>
