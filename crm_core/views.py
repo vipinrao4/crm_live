@@ -10,7 +10,6 @@ def dashboard(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
-    # ADMIN DATA LOAD - Real fields mapping without dynamic failure points
     try:
         orders = Order.objects.all().order_by('-id')
         total_orders = orders.count()
@@ -18,7 +17,6 @@ def dashboard(request):
         orders = []
         total_orders = 0
 
-    # Repeat counts calculation engine
     try:
         all_existing_phones = list(Order.objects.values_list('phone', flat=True))
     except Exception:
@@ -52,7 +50,7 @@ def dashboard(request):
     return render(request, 'crm_core/admin_control.html', context)
 
 
-# EXPLICIT STATUS UPDATE FUNCTION FOR URL CONF
+# ADMIN STATUS UPDATE ACTION FUNCTION
 @login_required
 def admin_update_status(request, order_id):
     if request.user.is_staff or request.user.is_superuser:
@@ -73,9 +71,9 @@ def emp_dashboard_view(request):
     user_instance = request.user
     message = ""
     
-    # AJAX ENDPOINT FOR LIVE EDITING DATA FETCH
+    # AJAX ENDPOINT FOR LIVE EDITING DATA FETCH (FIXED LINE LOGIC)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'get_order':
-        order_id = request.GET.get('action') == 'get_order' and request.GET.get('order_id')
+        order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
             phone_str = getattr(order_obj, 'phone', '')
@@ -97,7 +95,7 @@ def emp_dashboard_view(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # POST ENTRY HANDLER (CREATE / UPDATE MATRIX)
+    # POST ENTRY HANDLER (CREATE / UPDATE)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -142,14 +140,14 @@ def emp_dashboard_view(request):
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status badal chuka hai! Edit lock ho gaya."
+                    message = "error: Status badal chuka hai! Edit lock hai."
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
             try:
                 new_order = Order()
                 new_order.customer_name = customer_name
-                new_order.status = 'Pending'  # Fixed status constraint default
+                new_order.status = 'Pending'  # Default status set to Pending
                 
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
                     if hasattr(new_order, e_attr):
@@ -166,7 +164,6 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # DATABASE DATA OUTPUT QUERY LOGS
     orders_query = Order.objects.all()
     try:
         my_orders = orders_query.order_by('-id')
