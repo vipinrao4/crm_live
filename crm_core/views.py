@@ -17,15 +17,12 @@ def dashboard(request):
         orders = []
         total_orders = 0
 
-    try:
-        all_existing_phones = list(Order.objects.values_list('phone', flat=True))
-    except Exception:
-        all_existing_phones = []
-        
+    # SAFE FIELD LOOKUP FOR COUNTERS
     raw_phone_pool = []
-    for p in all_existing_phones:
-        if p:
-            for num in p.split('/'):
+    for order in orders:
+        p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
+        if p_val:
+            for num in p_val.split('/'):
                 c_num = num.strip()
                 if c_num: raw_phone_pool.append(c_num)
                 
@@ -34,8 +31,9 @@ def dashboard(request):
     
     repeat_counter = 0
     for order in orders:
-        if order.phone:
-            for segment in order.phone.split('/'):
+        p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
+        if p_val:
+            for segment in p_val.split('/'):
                 seg_clean = segment.strip()
                 if seg_clean and phone_counts[seg_clean] > 1:
                     repeat_counter += 1
@@ -74,7 +72,7 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            phone_str = getattr(order_obj, 'phone', '')
+            phone_str = getattr(order_obj, 'phone', getattr(order_obj, 'customer_phone', ''))
             p_parts = phone_str.split('/') if phone_str else ["", ""]
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
@@ -85,9 +83,9 @@ def emp_dashboard_view(request):
                 'name': order_obj.customer_name,
                 'phone1': p1,
                 'phone2': p2,
-                'address': order_obj.address,
-                'items': order_obj.items,
-                'total': order_obj.total,
+                'address': getattr(order_obj, 'address', getattr(order_obj, 'customer_address', '')),
+                'items': getattr(order_obj, 'items', getattr(order_obj, 'products', '')),
+                'total': getattr(order_obj, 'total', getattr(order_obj, 'grand_total', 0)),
                 'is_editable': order_obj.status == 'Pending'
             })
         except Exception as e:
@@ -129,11 +127,17 @@ def emp_dashboard_view(request):
                 target_order = Order.objects.get(id=order_id)
                 if target_order.status == 'Pending':
                     target_order.customer_name = customer_name
-                    target_order.phone = combined_phones
-                    target_order.address = full_address
+                    
+                    for p_attr in ['phone', 'customer_phone']:
+                        if hasattr(target_order, p_attr): setattr(target_order, p_attr, combined_phones)
+                    for a_attr in ['address', 'customer_address']:
+                        if hasattr(target_order, a_attr): setattr(target_order, a_attr, full_address)
                     if items_list:
-                        target_order.items = final_items_summary
-                    target_order.total = total
+                        for i_attr in ['items', 'products']:
+                            if hasattr(target_order, i_attr): setattr(target_order, i_attr, final_items_summary)
+                    for t_attr in ['total', 'grand_total']:
+                        if hasattr(target_order, t_attr): setattr(target_order, t_attr, total)
+                        
                     target_order.save()
                     message = "update_success"
                 else:
@@ -151,10 +155,14 @@ def emp_dashboard_view(request):
                         try: setattr(new_order, e_attr, user_instance)
                         except Exception: setattr(new_order, e_attr, username)
                 
-                if hasattr(new_order, 'phone'): new_order.phone = combined_phones
-                if hasattr(new_order, 'address'): new_order.address = full_address
-                if hasattr(new_order, 'items'): new_order.items = final_items_summary
-                if hasattr(new_order, 'total'): new_order.total = total
+                for p_attr in ['phone', 'customer_phone']:
+                    if hasattr(new_order, p_attr): setattr(new_order, p_attr, combined_phones)
+                for a_attr in ['address', 'customer_address']:
+                    if hasattr(new_order, a_attr): setattr(new_order, a_attr, full_address)
+                for i_attr in ['items', 'products']:
+                    if hasattr(new_order, i_attr): setattr(new_order, i_attr, final_items_summary)
+                for t_attr in ['total', 'grand_total']:
+                    if hasattr(new_order, t_attr): setattr(new_order, t_attr, total)
                 
                 new_order.save()
                 message = "success"
@@ -164,20 +172,8 @@ def emp_dashboard_view(request):
     orders_query = Order.objects.all()
     try:
         my_orders = orders_query.order_by('-id')
-        all_existing_phones = list(Order.objects.values_list('phone', flat=True))
     except Exception:
         my_orders = []
-        all_existing_phones = []
-
-    raw_phone_pool = []
-    for p in all_existing_phones:
-        if p:
-            for num in p.split('/'):
-                c_num = num.strip()
-                if c_num: raw_phone_pool.append(c_num)
-                
-    from collections import Counter
-    phone_counts = Counter(raw_phone_pool)
 
     total_orders_count = len(my_orders)
     total_sales_amount = 0
@@ -189,12 +185,17 @@ def emp_dashboard_view(request):
         raw_emp = getattr(order, 'emp', getattr(order, 'employee', 'System'))
         emp_badge = getattr(raw_emp, 'username', str(raw_emp))
         
-        try: total_sales_amount += float(order.total or 0)
+        p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
+        a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
+        i_val = getattr(order, 'items', getattr(order, 'products', ''))
+        t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
+        
+        try: total_sales_amount += float(t_val or 0)
         except (ValueError, TypeError): pass
 
         is_repeat = False
-        if order.phone:
-            for segment in order.phone.split('/'):
+        if p_val:
+            for segment in p_val.split('/'):
                 seg_clean = segment.strip()
                 if seg_clean and phone_counts[seg_clean] > 1:
                     is_repeat = True
@@ -218,10 +219,10 @@ def emp_dashboard_view(request):
         <tr>
             <td class="text-muted">{order_date_str}</td>
             <td><span class="badge bg-secondary px-2 py-1">{emp_badge}</span></td>
-            <td><b>{order.customer_name}</b><br><small class="text-muted">{order.phone}</small></td>
-            <td class="text-wrap" style="max-width: 220px; font-size:12px;">{order.address}</td>
-            <td><span class="fw-semibold text-secondary">{order.items}</span></td>
-            <td class="fw-bold text-dark">₹{order.total}</td>
+            <td><b>{order.customer_name}</b><br><small class="text-muted">{p_val}</small></td>
+            <td class="text-wrap" style="max-width: 220px; font-size:12px;">{a_val}</td>
+            <td><span class="fw-semibold text-secondary">{i_val}</span></td>
+            <td class="fw-bold text-dark">₹{t_val}</td>
             <td>
                 {status_display}<br>
                 {action_btn}
