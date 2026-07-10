@@ -105,7 +105,9 @@
                                     
                                     <form method="POST" action="/update-status/{{ order.id }}/" class="d-inline">
                                         {% csrf_token %}
-                                        <button type="submit" name="status" value="Generated" class="btn btn-success btn-xs text-white me-1" style="background-color: #198754; border:none;">Generate</button>
+                                        <button type="submit" name="status" value="Generated" class="btn btn-success btn-xs text-white me-1" style="background-color: #198754; border:none;">
+                                            {% if order.status == 'Generated' %}Undo Gen{% else %}Generate{% endif %}
+                                        </button>
                                         <button type="submit" name="status" value="Cancelled" class="btn btn-danger btn-xs text-white me-1" style="background-color: #dc3545; border:none;">Cancel</button>
                                     </form>
                                     
@@ -164,7 +166,6 @@
 </div>
 
 <script>
-    // Formula equation implementation: Average = Ad Spent / New Order (Bottle Count)
     function calculateRowAverage(inputElement) {
         const row = inputElement.closest('.agent-row');
         const newBottlesCount = parseInt(row.querySelector('.new-bottles-val').innerText) || 0;

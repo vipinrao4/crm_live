@@ -5,19 +5,27 @@ from django.db.models import Q
 from datetime import datetime
 from django.http import HttpResponse, JsonResponse
 from collections import Counter
+import re
 
-# Helper function to extract bottle counts from order items summary text
+# Helper function to extract bottle counts from order items summary text accurately
 def extract_bottles_from_text(items_text):
     if not items_text:
         return 0
-    import re
     matches = re.findall(r'x\s*(\d+)', items_text.lower())
     total_qty = 0
     for m in matches:
-        try: total_qty += int(m)
-        except ValueError: pass
+        try: 
+            total_qty += int(m)
+        except ValueError: 
+            pass
     if total_qty == 0 and items_text.strip() and "no product" not in items_text.lower():
-        total_qty = len([i for i in items_text.split(',') if i.strip()])
+        # Fallback if text format is plain
+        matches_digits = re.findall(r'\d+', items_text)
+        if matches_digits:
+            try: total_qty += sum(int(d) for d in matches_digits)
+            except ValueError: total_qty = 1
+        else:
+            total_qty = 1
     return total_qty
 
 @login_required
@@ -41,7 +49,7 @@ def dashboard(request):
 
     total_orders = orders.count()
 
-    # Repeat logic pool setup
+    # Global Repeat logic pool setup based on all existing orders
     all_global_orders = Order.objects.all()
     raw_phone_pool = []
     for o in all_global_orders:
@@ -62,7 +70,12 @@ def dashboard(request):
     for order in orders:
         p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
-        i_val = getattr(order, 'items', getattr(order, 'products', 'No Product Data'))
+        
+        # FIX: Try checking both 'items' and 'products' dynamically to avoid blank strings
+        i_val = getattr(order, 'items', '')
+        if not i_val or i_val == "No Product Data":
+            i_val = getattr(order, 'products', 'No Product Data')
+        
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
         raw_emp = getattr(order, 'emp', getattr(order, 'employee', 'System'))
@@ -76,7 +89,7 @@ def dashboard(request):
                     is_repeat = True
                     break
                     
-        bottles_in_order = extract_bottles_from_text(i_val)
+        bottles_in_order = extract_bottles_from_text(str(i_val))
         
         total_bottle_count += bottles_in_order
         if is_repeat:
@@ -84,7 +97,7 @@ def dashboard(request):
         else:
             new_order_bottle_count += bottles_in_order
 
-        # Initialize agent metrics with the requested column structures
+        # Initialize agent performance with correct counts
         if emp_name not in agent_perf_map:
             agent_perf_map[emp_name] = {'new_bottles': 0, 'repeat_bottles': 0}
             
@@ -134,7 +147,11 @@ def admin_update_status(request, order_id):
             new_status = request.POST.get('status')
             try:
                 order_obj = Order.objects.get(id=order_id)
-                order_obj.status = new_status
+                # REQ 4 FIX: If clicking 'Generated' while it's already 'Generated', toggle back to 'Pending'
+                if new_status == 'Generated' and order_obj.status == 'Generated':
+                    order_obj.status = 'Pending'
+                else:
+                    order_obj.status = new_status
                 order_obj.save()
             except Exception:
                 pass
@@ -156,6 +173,10 @@ def emp_dashboard_view(request):
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
             
+            items_str = getattr(order_obj, 'items', '')
+            if not items_str:
+                items_str = getattr(order_obj, 'products', '')
+            
             return JsonResponse({
                 'status': 'success',
                 'id': order_obj.id,
@@ -163,7 +184,7 @@ def emp_dashboard_view(request):
                 'phone1': p1,
                 'phone2': p2,
                 'address': getattr(order_obj, 'address', getattr(order_obj, 'customer_address', '')),
-                'items': getattr(order_obj, 'items', getattr(order_obj, 'products', '')),
+                'items': items_str,
                 'total': getattr(order_obj, 'total', getattr(order_obj, 'grand_total', 0)),
                 'is_editable': order_obj.status == 'Pending'
             })
@@ -211,9 +232,11 @@ def emp_dashboard_view(request):
                         if hasattr(target_order, p_attr): setattr(target_order, p_attr, combined_phones)
                     for a_attr in ['address', 'customer_address']:
                         if hasattr(target_order, a_attr): setattr(target_order, a_attr, full_address)
-                    if items_list:
-                        for i_attr in ['items', 'products']:
-                            if hasattr(target_order, i_attr): setattr(target_order, i_attr, final_items_summary)
+                    
+                    # Save summary to both possible attributes
+                    if hasattr(target_order, 'items'): target_order.items = final_items_summary
+                    if hasattr(target_order, 'products'): target_order.products = final_items_summary
+                    
                     for t_attr in ['total', 'grand_total']:
                         if hasattr(target_order, t_attr): setattr(target_order, t_attr, total)
                         
@@ -238,8 +261,10 @@ def emp_dashboard_view(request):
                     if hasattr(new_order, p_attr): setattr(new_order, p_attr, combined_phones)
                 for a_attr in ['address', 'customer_address']:
                     if hasattr(new_order, a_attr): setattr(new_order, a_attr, full_address)
-                for i_attr in ['items', 'products']:
-                    if hasattr(new_order, i_attr): setattr(new_order, i_attr, final_items_summary)
+                
+                if hasattr(new_order, 'items'): new_order.items = final_items_summary
+                if hasattr(new_order, 'products'): new_order.products = final_items_summary
+                
                 for t_attr in ['total', 'grand_total']:
                     if hasattr(new_order, t_attr): setattr(new_order, t_attr, total)
                 
@@ -288,7 +313,11 @@ def emp_dashboard_view(request):
         
         p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
-        i_val = getattr(order, 'items', getattr(order, 'products', ''))
+        
+        i_val = getattr(order, 'items', '')
+        if not i_val or i_val == "No Product Data":
+            i_val = getattr(order, 'products', 'No Product Data')
+            
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
         try: total_sales_amount += float(t_val or 0)
