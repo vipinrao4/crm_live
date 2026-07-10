@@ -50,7 +50,6 @@ def dashboard(request):
     return render(request, 'crm_core/admin_control.html', context)
 
 
-# ADMIN STATUS UPDATE ACTION FUNCTION
 @login_required
 def admin_update_status(request, order_id):
     if request.user.is_staff or request.user.is_superuser:
@@ -71,7 +70,6 @@ def emp_dashboard_view(request):
     user_instance = request.user
     message = ""
     
-    # AJAX ENDPOINT FOR LIVE EDITING DATA FETCH (FIXED LINE LOGIC)
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'get_order':
         order_id = request.GET.get('order_id')
         try:
@@ -95,7 +93,6 @@ def emp_dashboard_view(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # POST ENTRY HANDLER (CREATE / UPDATE)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -140,14 +137,14 @@ def emp_dashboard_view(request):
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status badal chuka hai! Edit lock hai."
+                    message = "error: Status badal chuka hai!"
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
             try:
                 new_order = Order()
                 new_order.customer_name = customer_name
-                new_order.status = 'Pending'  # Default status set to Pending
+                new_order.status = 'Pending'
                 
                 for e_attr in ['emp', 'agent', 'user', 'employee']:
                     if hasattr(new_order, e_attr):
