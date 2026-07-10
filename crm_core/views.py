@@ -7,7 +7,6 @@ from django.http import HttpResponse, JsonResponse
 from collections import Counter
 import re
 
-# Price Catalog Matrix for automated backward calculation
 PRICE_CATALOG = {
     "Asthakesri": 1500,
     "Immunity booster": 900,
@@ -18,11 +17,6 @@ PRICE_CATALOG = {
 }
 
 def derive_products_from_total(total_val, saved_items_text):
-    """
-    Intelligent backward engineering matrix solver.
-    If database contains default plain text but the total price maps perfectly 
-    to a product combination, we override the text dynamically for display logs.
-    """
     try:
         val = int(float(total_val or 0))
     except Exception:
@@ -31,11 +25,10 @@ def derive_products_from_total(total_val, saved_items_text):
     if val <= 0:
         return "No Product Selected"
         
-    # Standard product mapping hard matches shortcuts
     if val == 2400:
         return "Asthakesri (x1), New Product combo (x1)"
     if val == 3150:
-        return "Immunity booster (x2), Pain Tablet (x3)" # Example combination mapping total exactly
+        return "Immunity booster (x2), Pain Tablet (x3)"
     if val == 1300:
         return "Gastro (x2), Onion Oil (x1)"
     if val == 600:
@@ -45,7 +38,6 @@ def derive_products_from_total(total_val, saved_items_text):
     if val == 1500:
         return "Asthakesri (x1)"
         
-    # Dynamic string formatting search matrix fallback
     cleaned = str(saved_items_text)
     if not cleaned or "no product" in cleaned.lower() or cleaned == "Asthakesri (x1)":
         for name, price in PRICE_CATALOG.items():
@@ -117,7 +109,6 @@ def dashboard(request):
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
-        # FIX: Dynamically derive the correct items list display based on final total value
         raw_items_str = getattr(order, 'items', getattr(order, 'products', ''))
         i_val = derive_products_from_total(t_val, raw_items_str)
 
@@ -313,7 +304,19 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
+    emp_start_date = request.GET.get('emp_start_date', '').strip()
+    emp_end_date = request.GET.get('emp_end_date', '').strip()
+
     orders_query = Order.objects.all()
+    
+    if emp_start_date and emp_end_date:
+        try:
+            es_date = datetime.strptime(emp_start_date, '%Y-%m-%d').date()
+            ee_date = datetime.strptime(emp_end_date, '%Y-%m-%d').date()
+            orders_query = orders_query.filter(date__range=[es_date, ee_date])
+        except Exception:
+            pass
+
     try:
         my_orders = orders_query.order_by('-id')
     except Exception:
@@ -342,7 +345,6 @@ def emp_dashboard_view(request):
         a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
         t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
-        # FIX: Display safe real derived items text in employee screen logs too
         raw_items_str = getattr(order, 'items', getattr(order, 'products', ''))
         i_val = derive_products_from_total(t_val, raw_items_str)
         
@@ -450,7 +452,7 @@ def emp_dashboard_view(request):
                 <div class="col-md-4">
                     <div class="card p-3 shadow-sm bg-white border-start border-warning border-4">
                         <small class="text-muted fw-bold d-block mb-1 text-uppercase small">Total Repeat Orders Count</small>
-                        <h3 class="text-warning mb-0 fw-bold">{repeat_counter} Orders</h3 >
+                        <h3 class="text-warning mb-0 fw-bold">{repeat_counter} Orders</h3>
                     </div>
                 </div>
             </div>
