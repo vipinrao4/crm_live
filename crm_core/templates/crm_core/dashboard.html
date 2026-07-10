@@ -1,59 +1,203 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Employee Dashboard</title>
+    <title>Employee Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Employee Order Management</h2>
-            <a href="/admin/logout/" class="btn btn-danger btn-sm">Logout</a>
-        </div>
-        
-        <div class="card p-3 mb-4 bg-white shadow-sm">
-            <h6 class="fw-bold text-secondary mb-2">Old Customer Search Box</h6>
-            <div class="input-group">
-                <input type="text" id="searchPhone" class="form-control" placeholder="Enter customer phone number...">
-                <button onclick="searchCustomer()" class="btn btn-dark fw-bold">Search</button>
-            </div>
+    <div class="container-fluid mt-3">
+        <div class="d-flex justify-content-between mb-3 align-items-center">
+            <h4 class="text-primary fw-bold">Employee Dashboard: {{ request.user.username }}</h4>
+            <form class="d-flex gap-2">
+                <input type="date" name="date" value="{{ date_filter }}" class="form-control">
+                <button type="submit" class="btn btn-dark">Filter Date</button>
+            </form>
         </div>
 
-        <div class="card p-4 bg-white shadow-sm mb-4">
-            <h5 class="mb-3 fw-bold">Punch New Entry</h5>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <input type="text" id="c_name" name="customer_name" class="form-control" placeholder="Customer Name" required>
+        <div class="row mb-4 text-center">
+            <div class="col-3"><div class="card p-3 shadow-sm border-primary"><h6>New Orders</h6><h3 class="text-primary">{{ new_ord_count }}</h3></div></div>
+            <div class="col-3"><div class="card p-3 shadow-sm border-warning"><h6>Repeat Orders</h6><h3 class="text-warning">{{ rep_ord_count }}</h3></div></div>
+            <div class="col-3"><div class="card p-3 shadow-sm border-success"><h6>New Bottle Count</h6><h3 class="text-success">{{ new_bot_count }}</h3></div></div>
+            <div class="col-3"><div class="card p-3 shadow-sm border-danger"><h6>Repeat Bottle Count</h6><h3 class="text-danger">{{ rep_bot_count }}</h3></div></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-5">
+                <div class="card p-4 shadow-sm mb-4">
+                    <h5 class="fw-bold mb-3">Order Entry Form</h5>
+                    
+                    <div class="input-group mb-3">
+                        <input type="number" id="searchPhone" class="form-control" placeholder="Search Old Customer Phone">
+                        <button type="button" class="btn btn-warning fw-bold" onclick="searchCust()">Search</button>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <input type="text" id="phone1" name="phone1" class="form-control" placeholder="Phone Number" required>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <input type="text" id="c_addr_line" name="address" class="form-control" placeholder="Full Address">
+                    <div id="lastOrderMsg" class="text-danger fw-bold small mb-3"></div>
+
+                    <form method="POST" id="orderForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="order_id" id="form_order_id">
+                        
+                        <input type="text" name="customer_name" id="c_name" class="form-control mb-2" placeholder="Customer Name" required>
+                        <div class="d-flex gap-2 mb-2">
+                            <input type="text" name="phone1" id="phone1" class="form-control" placeholder="Phone 1 (10 digits)" pattern="\d{10}" maxlength="10" required>
+                            <input type="text" name="phone2" id="phone2" class="form-control" placeholder="Phone 2 (10 digits)" pattern="\d{10}" maxlength="10">
+                        </div>
+                        <textarea name="address" id="address" class="form-control mb-2" placeholder="Full Address" required></textarea>
+                        
+                        <div class="d-flex gap-2 mb-2">
+                            <input type="number" name="pincode" id="pincode" class="form-control" placeholder="Pincode" onkeyup="fetchPincode()" required>
+                            <input type="text" name="post_office" id="post_office" class="form-control" placeholder="Post Office" required>
+                        </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="text" name="tehsil" id="tehsil" class="form-control" placeholder="Tehsil">
+                            <input type="text" name="district" id="district" class="form-control" placeholder="District">
+                            <input type="text" name="state" id="state" class="form-control" placeholder="State">
+                        </div>
+
+                        <h6 class="fw-bold">Select Products</h6>
+                        <div id="product-rows"></div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addProductRow()">+ Add Product Dropdown</button>
+                        
+                        <input type="hidden" name="items_summary" id="items_summary">
+                        <input type="hidden" name="total_bottles" id="total_bottles">
+                        <input type="hidden" name="grand_total" id="grand_total">
+                        
+                        <div class="alert alert-success d-flex justify-content-between align-items-center p-2 mb-3">
+                            <h6 class="m-0 fw-bold">Grand Total:</h6>
+                            <h5 class="m-0 fw-bold">Rs. <span id="grandTotalDisplay">0</span></h5>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 fw-bold" onclick="return prepareSubmit(this)">Submit Order</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="card p-3 shadow-sm">
+                    <h5 class="fw-bold">Submitted Orders ({{ date_filter }})</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm text-center" style="font-size: 13px;">
+                            <thead class="table-dark">
+                                <tr><th>Customer</th><th>Items & Total</th><th>Type</th><th>Status</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for o in orders %}
+                                <tr>
+                                    <td>{{ o.customer_name }}<br>{{ o.phone1 }}</td>
+                                    <td>{{ o.items_summary }}<br><span class="text-success fw-bold">Rs. {{ o.grand_total }}</span></td>
+                                    <td>{% if o.is_repeat %}<span class="badge bg-warning text-dark">Repeat</span>{% else %}<span class="badge bg-primary">New</span>{% endif %}</td>
+                                    <td>{{ o.status }}</td>
+                                    <td>
+                                        {% if o.status == 'Pending' %}
+                                        <button class="btn btn-sm btn-outline-primary py-0" onclick="editOrder('{{ o.id }}', '{{ o.customer_name }}', '{{ o.phone1 }}', '{{ o.phone2 }}', '{{ o.address }}', '{{ o.pincode }}', '{{ o.post_office }}', '{{ o.tehsil }}', '{{ o.district }}', '{{ o.state }}')">Edit</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-success fw-bold">Save Order Entry</button>
-            </form>
+            </div>
         </div>
     </div>
 
-    <script>
-        function searchCustomer() {
-            const phone = document.getElementById('searchPhone').value;
-            fetch(`?action=search_phone&phone=${phone}`, { headers: {'X-Requested-With': 'XMLHttpRequest'}})
-            .then(r => r.json()).then(d => {
-                if(d.status === 'success') {
-                    document.getElementById('c_name').value = d.name;
-                    document.getElementById('c_addr_line').value = d.address;
-                    document.getElementById('phone1').value = phone;
-                    alert("Customer data safely auto-filled!");
-                } else { 
-                    alert("No previous customer found with this number."); 
+<script>
+    const productsList = ['Asthakesri', 'Immunity booster', 'Pain tablet', 'Pain Oil', 'Gastro', 'Onion Oil'];
+    let rowCount = 0;
+    
+    function addProductRow() {
+        if(rowCount >= 3) { alert("Maximum 3 product types allowed!"); return; }
+        let row = document.createElement('div');
+        row.className = "d-flex gap-2 mb-2 product-row";
+        let selectHtml = `<select class="form-select p-name" onchange="calc()"><option value="">Select Item</option>`;
+        productsList.forEach(p => selectHtml += `<option value="${p}">${p}</option>`);
+        selectHtml += `</select>`;
+        row.innerHTML = `
+            ${selectHtml}
+            <input type="number" class="form-control p-qty" placeholder="Qty" value="1" min="1" style="width: 80px;" oninput="calc()">
+            <input type="number" class="form-control p-price" placeholder="Price" oninput="calc()">
+        `;
+        document.getElementById('product-rows').appendChild(row);
+        rowCount++;
+    }
+    window.onload = () => addProductRow();
+
+    function calc() {
+        let rows = document.querySelectorAll('.product-row');
+        let totalVal = 0; let totalBottles = 0; let summary = [];
+        rows.forEach(r => {
+            let n = r.querySelector('.p-name').value;
+            let q = parseInt(r.querySelector('.p-qty').value) || 0;
+            let p = parseInt(r.querySelector('.p-price').value) || 0;
+            if(n && q > 0) {
+                totalVal += p; totalBottles += q;
+                summary.push(`${n} (x${q})`);
+            }
+        });
+        document.getElementById('grandTotalDisplay').innerText = totalVal;
+        document.getElementById('grand_total').value = totalVal;
+        document.getElementById('total_bottles').value = totalBottles;
+        document.getElementById('items_summary').value = summary.join(' | ');
+    }
+
+    function prepareSubmit(btn) { 
+        calc(); 
+        if(document.getElementById('grand_total').value == "0") {
+            alert("Please add at least one product with price!");
+            return false;
+        }
+        btn.innerHTML = "Submitting...";
+        return true; 
+    }
+
+    function fetchPincode() {
+        let pin = document.getElementById('pincode').value;
+        if(pin.length === 6) {
+            fetch(`https://api.postalpincode.in/pincode/${pin}`).then(r=>r.json()).then(d=>{
+                if(d[0].Status === 'Success') {
+                    let po = d[0].PostOffice[0];
+                    document.getElementById('district').value = po.District;
+                    document.getElementById('state').value = po.State;
+                    document.getElementById('post_office').value = po.Name;
+                    document.getElementById('tehsil').value = po.Block !== "NA" ? po.Block : po.District;
                 }
             });
         }
-    </script>
+    }
+
+    function searchCust() {
+        let ph = document.getElementById('searchPhone').value;
+        if(!ph) return;
+        fetch(`/employee/dashboard/?action=search_phone&phone=${ph}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r=>r.json()).then(d=>{
+            if(d.status === 'success'){
+                document.getElementById('c_name').value = d.data.name;
+                document.getElementById('phone1').value = d.data.phone1;
+                document.getElementById('phone2').value = d.data.phone2;
+                document.getElementById('address').value = d.data.address;
+                document.getElementById('pincode').value = d.data.pincode;
+                document.getElementById('post_office').value = d.data.post_office;
+                document.getElementById('tehsil').value = d.data.tehsil;
+                document.getElementById('district').value = d.data.district;
+                document.getElementById('state').value = d.data.state;
+                document.getElementById('lastOrderMsg').innerHTML = `Customer Found! Last Order: <b>${d.data.last_date}</b>`;
+            } else { alert("New Customer! No old data found."); }
+        });
+    }
+
+    function editOrder(id, name, p1, p2, add, pin, po, teh, dist, st) {
+        document.getElementById('form_order_id').value = id;
+        document.getElementById('c_name').value = name;
+        document.getElementById('phone1').value = p1;
+        document.getElementById('phone2').value = p2;
+        document.getElementById('address').value = add;
+        document.getElementById('pincode').value = pin;
+        document.getElementById('post_office').value = po;
+        document.getElementById('tehsil').value = teh;
+        document.getElementById('district').value = dist;
+        document.getElementById('state').value = st;
+        document.getElementById('lastOrderMsg').innerText = "Editing Order... Please resubmit products.";
+    }
+</script>
 </body>
 </html>

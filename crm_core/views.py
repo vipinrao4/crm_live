@@ -4,10 +4,12 @@ from django.contrib.auth import authenticate, login as django_login
 from django.http import JsonResponse
 from .models import Order
 from django.db.models import Q
+from datetime import datetime
 
 def is_admin(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
+# LOGIN FUNCTION JO MISSING THA
 def custom_login(request):
     if request.user.is_authenticated:
         if request.user.is_staff or request.user.is_superuser:
@@ -31,23 +33,100 @@ def custom_login(request):
             
     return render(request, 'crm_core/login.html', {'error': error_msg})
 
-@user_passes_test(is_admin, login_url='/accounts/login/')
-def dashboard(request):
-    return render(request, 'crm_core/admin_control.html', {'orders': Order.objects.all().order_by('-id')})
-
 @login_required(login_url='/accounts/login/')
 def emp_dashboard_view(request):
+    # AJAX Search for old customer
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'search_phone':
         q = request.GET.get('phone', '')
-        o = Order.objects.filter(Q(phone__icontains=q)).first()
-        return JsonResponse({'status': 'success', 'name': o.customer_name, 'address': o.address, 'total': o.total} if o else {'status': 'not_found'})
-    
-    return render(request, 'crm_core/dashboard.html', {'orders': Order.objects.all().order_by('-id')})
+        o = Order.objects.filter(Q(phone1=q) | Q(phone2=q)).order_by('-id').first()
+        if o:
+            return JsonResponse({'status': 'success', 'data': {
+                'name': o.customer_name, 'phone1': o.phone1, 'phone2': o.phone2,
+                'address': o.address, 'pincode': o.pincode, 'post_office': o.post_office,
+                'tehsil': o.tehsil, 'district': o.district, 'state': o.state,
+                'last_date': o.date.strftime('%Y-%m-%d')
+            }})
+        return JsonResponse({'status': 'not_found'})
 
-@login_required(login_url='/accounts/login/')
-def admin_update_status(request, order_id):
+    # POST Form Submission
     if request.method == 'POST':
-        o = Order.objects.get(id=order_id)
-        o.status = request.POST.get('status')
+        order_id = request.POST.get('order_id')
+        phone1 = request.POST.get('phone1')
+        phone2 = request.POST.get('phone2')
+        
+        # Check Repeat
+        is_rep = Order.objects.filter(Q(phone1=phone1) | Q(phone2=phone1)).exclude(id=order_id if order_id else None).exists()
+        
+        if order_id:
+            o = Order.objects.get(id=order_id, emp=request.user.username)
+        else:
+            o = Order()
+            o.emp = request.user.username
+            
+        o.is_repeat = is_rep
+        o.customer_name = request.POST.get('customer_name')
+        o.phone1 = phone1
+        o.phone2 = phone2
+        o.address = request.POST.get('address')
+        o.pincode = request.POST.get('pincode')
+        o.post_office = request.POST.get('post_office')
+        o.tehsil = request.POST.get('tehsil')
+        o.district = request.POST.get('district')
+        o.state = request.POST.get('state')
+        o.items_summary = request.POST.get('items_summary')
+        o.total_bottles = int(request.POST.get('total_bottles', 0))
+        o.grand_total = int(request.POST.get('grand_total', 0))
         o.save()
-    return redirect('/')
+        return redirect('emp_dashboard')
+
+    # Date Filter
+    date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
+    my_orders = Order.objects.filter(emp=request.user.username, date__date=date_filter).order_by('-id')
+    
+    ctx = {
+        'orders': my_orders, 'date_filter': date_filter,
+        'new_ord_count': my_orders.filter(is_repeat=False).count(),
+        'rep_ord_count': my_orders.filter(is_repeat=True).count(),
+        'new_bot_count': sum(o.total_bottles for o in my_orders if not o.is_repeat),
+        'rep_bot_count': sum(o.total_bottles for o in my_orders if o.is_repeat),
+    }
+    return render(request, 'crm_core/dashboard.html', ctx)
+
+@user_passes_test(is_admin, login_url='/accounts/login/')
+def dashboard(request):
+    date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
+    search_q = request.GET.get('search', '')
+
+    orders = Order.objects.all().order_by('-id')
+    if search_q:
+        orders = orders.filter(Q(phone1__icontains=search_q) | Q(phone2__icontains=search_q))
+    elif date_filter:
+        orders = orders.filter(date__date=date_filter)
+
+    agent_data = {}
+    for o in orders:
+        if o.emp not in agent_data:
+            agent_data[o.emp] = {'new_b': 0, 'rep_b': 0}
+        if o.is_repeat: agent_data[o.emp]['rep_b'] += o.total_bottles
+        else: agent_data[o.emp]['new_b'] += o.total_bottles
+
+    ctx = {
+        'orders': orders, 'date_filter': date_filter, 'search_q': search_q,
+        'tot_new_ord': orders.filter(is_repeat=False).count(),
+        'tot_rep_ord': orders.filter(is_repeat=True).count(),
+        'tot_new_bot': sum(o.total_bottles for o in orders if not o.is_repeat),
+        'tot_rep_bot': sum(o.total_bottles for o in orders if o.is_repeat),
+        'agents': [{'name': k, **v} for k, v in agent_data.items()]
+    }
+    return render(request, 'crm_core/admin_control.html', ctx)
+
+@login_required
+def admin_update_status(request, order_id):
+    o = Order.objects.get(id=order_id)
+    new_status = request.GET.get('status')
+    if o.status == 'Generated' and new_status == 'Generated':
+        o.status = 'Pending'
+    else:
+        o.status = new_status
+    o.save()
+    return redirect('dashboard')
