@@ -3,92 +3,133 @@
 <head>
     <title>Master Admin Control</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .row-generated { background-color: #d1e7dd !important; }
-        .row-cancelled { background-color: #f8d7da !important; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); transition: transform 0.2s; }
+        .stat-card { border-bottom: 4px solid; }
+        .stat-primary { border-bottom-color: #0d6efd; }
+        .stat-warning { border-bottom-color: #ffc107; }
+        .stat-success { border-bottom-color: #198754; }
+        .stat-danger { border-bottom-color: #dc3545; }
+        .table th { background-color: #2c3e50; color: white; border-bottom: none; font-weight: 500;}
+        .row-generated { background-color: rgba(209, 231, 221, 0.4) !important; }
+        .row-cancelled { background-color: rgba(248, 215, 218, 0.4) !important; }
+        .btn-custom { border-radius: 8px; font-weight: 500; }
+        .form-control, .form-select { border-radius: 8px; border: 1px solid #ced4da; }
     </style>
 </head>
-<body class="bg-light">
-    <div class="container-fluid mt-3">
-        <!-- Header, Date Range & Logout -->
-        <div class="d-flex justify-content-between mb-3 align-items-center bg-white p-3 shadow-sm rounded">
-            <h5 class="text-danger fw-bold m-0">Admin Panel ({{ request.user.username }})</h5>
+<body>
+    <div class="container-fluid mt-4 px-4">
+        <div class="d-flex justify-content-between mb-4 align-items-center bg-white p-3 shadow-sm rounded-4">
+            <h4 class="fw-bold m-0" style="background: -webkit-linear-gradient(#dc3545, #fd7e14); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Admin Control Panel
+            </h4>
             <div class="d-flex gap-3 align-items-center">
-                <form class="d-flex gap-2 align-items-center m-0">
-                    <input type="text" name="search" value="{{ search_q }}" class="form-control form-control-sm" placeholder="Phone No...">
-                    <span class="fw-bold small ms-2">From:</span>
-                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
-                    <span class="fw-bold small">To:</span>
-                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
-                    <button type="submit" class="btn btn-sm btn-primary fw-bold">Filter</button>
+                <form class="d-flex gap-2 align-items-center m-0 bg-light p-2 rounded-3">
+                    <input type="text" name="search" value="{{ search_q }}" class="form-control form-control-sm border-0" placeholder="Search Number..." style="box-shadow: none;">
+                    <span class="fw-medium small text-muted ms-2">From:</span>
+                    <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm border-0" style="box-shadow: none;">
+                    <span class="fw-medium small text-muted">To:</span>
+                    <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm border-0" style="box-shadow: none;">
+                    <button type="submit" class="btn btn-sm btn-primary btn-custom px-3">Filter</button>
                 </form>
-                <!-- NAYA LOGOUT LINK YAHAN HAI -->
-                <a href="/logout/" class="btn btn-sm btn-dark fw-bold">Logout</a>
+                <a href="/logout/" class="btn btn-sm btn-dark btn-custom px-3">Logout</a>
             </div>
         </div>
 
-        <!-- 4 Top Cards -->
         <div class="row mb-4 text-center">
-            <div class="col-3"><div class="card p-3 shadow-sm border-primary"><h6>New Orders</h6><h3>{{ tot_new_ord }}</h3></div></div>
-            <div class="col-3"><div class="card p-3 shadow-sm border-warning"><h6>Repeat Orders</h6><h3>{{ tot_rep_ord }}</h3></div></div>
-            <div class="col-3"><div class="card p-3 shadow-sm border-success"><h6>New Bottle Count</h6><h3>{{ tot_new_bot }}</h3></div></div>
-            <div class="col-3"><div class="card p-3 shadow-sm border-danger"><h6>Repeat Bottle Count</h6><h3>{{ tot_rep_bot }}</h3></div></div>
+            <div class="col-md-3 col-6 mb-3"><div class="card stat-card stat-primary p-3 h-100"><h6 class="text-muted mb-2">Total New Orders</h6><h2 class="text-primary fw-bold mb-0">{{ tot_new_ord }}</h2></div></div>
+            <div class="col-md-3 col-6 mb-3"><div class="card stat-card stat-warning p-3 h-100"><h6 class="text-muted mb-2">Total Repeat Orders</h6><h2 class="text-warning fw-bold mb-0">{{ tot_rep_ord }}</h2></div></div>
+            <div class="col-md-3 col-6 mb-3"><div class="card stat-card stat-success p-3 h-100"><h6 class="text-muted mb-2">New Bottle Count</h6><h2 class="text-success fw-bold mb-0">{{ tot_new_bot }}</h2></div></div>
+            <div class="col-md-3 col-6 mb-3"><div class="card stat-card stat-danger p-3 h-100"><h6 class="text-muted mb-2">Repeat Bottle Count</h6><h2 class="text-danger fw-bold mb-0">{{ tot_rep_bot }}</h2></div></div>
         </div>
 
-        <div class="row">
-            <!-- AGENT PERFORMANCE -->
-            <div class="col-md-4">
-                <div class="card p-3 shadow-sm mb-4">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h5 class="fw-bold m-0">Agent Performance</h5>
-                        <button onclick="downloadCSV('agentTable', 'Agent_Perf.csv')" class="btn btn-sm btn-success fw-bold">Excel Download</button>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card p-4 shadow-sm">
+                    <div class="d-flex justify-content-between mb-3 align-items-center">
+                        <h5 class="fw-bold m-0 text-dark">Agent Performance Tracking</h5>
+                        <button onclick="downloadCSV('agentTable', 'Agent_Performance.csv')" class="btn btn-sm btn-outline-success btn-custom px-3">Export CSV</button>
                     </div>
-                    <table class="table table-bordered text-center table-sm" id="agentTable">
-                        <thead class="table-dark"><tr><th>EMP</th><th>New Bottle</th><th>Rep Bottle</th><th>Ad Spent</th><th>Avg</th></tr></thead>
-                        <tbody>
-                            {% for a in agents %}
-                            <tr>
-                                <td>{{ a.name }}</td><td class="new-b">{{ a.new_b }}</td><td>{{ a.rep_b }}</td>
-                                <td><input type="number" class="form-control form-control-sm text-center" oninput="calcAvg(this)" placeholder="Rs."></td>
-                                <td class="avg-val fw-bold text-danger">0</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-center table-bordered" id="agentTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="py-3">Agent ID</th>
+                                    <th class="py-3">New Bottles</th>
+                                    <th class="py-3">Repeat Bottles</th>
+                                    <th class="py-3" style="width: 200px;">Ad Spent (₹)</th>
+                                    <th class="py-3">Average CPL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in agents %}
+                                <tr>
+                                    <td class="fw-bold text-dark">{{ a.name }}</td>
+                                    <td class="new-b fw-medium text-success fs-5">{{ a.new_b }}</td>
+                                    <td class="fw-medium text-warning fs-5">{{ a.rep_b }}</td>
+                                    <td><input type="number" class="form-control text-center bg-light" oninput="calcAvg(this)" placeholder="Enter ₹ Amount"></td>
+                                    <td class="avg-val fw-bold text-danger fs-5">0</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- MASTER LOG -->
-            <div class="col-md-8">
-                <div class="card p-3 shadow-sm">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h5 class="fw-bold m-0">Master Order Log</h5>
-                        <button onclick="downloadCSV('logTable', 'Master_Order_Log.csv')" class="btn btn-sm btn-success fw-bold">Excel Download</button>
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card p-4 shadow-sm">
+                    <div class="d-flex justify-content-between mb-3 align-items-center">
+                        <h5 class="fw-bold m-0 text-dark">Master Order Log</h5>
+                        <button onclick="downloadCSV('logTable', 'Master_Order_Log.csv')" class="btn btn-sm btn-outline-success btn-custom px-3">Export CSV</button>
                     </div>
-                    <div class="table-responsive" style="max-height: 600px;">
-                        <table class="table table-bordered table-sm text-center" id="logTable" style="font-size: 13px;">
-                            <thead class="table-dark">
-                                <tr><th>Date</th><th>EMP</th><th>Customer Detail</th><th>Items & Total</th><th>Type</th><th>Status Action</th><th>WhatsApp</th></tr>
+                    <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
+                        <table class="table table-hover align-middle text-center" id="logTable" style="font-size: 14px;">
+                            <thead class="table-dark" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th class="py-3">Date</th>
+                                    <th class="py-3">Agent</th>
+                                    <th class="py-3 text-start">Customer Details</th>
+                                    <th class="py-3 text-start">Address & Pincode</th>
+                                    <th class="py-3">Products & Bill</th>
+                                    <th class="py-3">Type</th>
+                                    <th class="py-3">Status Control</th>
+                                    <th class="py-3">Communicate</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for o in orders %}
                                 <tr class="{% if o.status == 'Generated' %}row-generated{% elif o.status == 'Cancelled' %}row-cancelled{% endif %}">
-                                    <td>{{ o.date|date:"d/m/y" }}</td>
-                                    <td class="fw-bold">{{ o.emp }}</td>
+                                    <td class="text-muted">{{ o.date|date:"d/m/y" }}</td>
+                                    <td><span class="badge bg-dark rounded-pill px-3 py-2">{{ o.emp }}</span></td>
                                     <td class="text-start">
-                                        <b>{{ o.customer_name }}</b><br>{{ o.phone1 }}<br>{{ o.district }}, {{ o.state }}
+                                        <b class="text-primary fs-6">{{ o.customer_name }}</b><br>
+                                        <span class="text-muted"><i class="bi bi-telephone"></i> {{ o.phone1 }} {% if o.phone2 %}, {{ o.phone2 }}{% endif %}</span>
                                     </td>
-                                    <td>{{ o.items_summary }}<br><b class="text-success">Rs. {{ o.grand_total }}</b></td>
-                                    <td>{% if o.is_repeat %}<span class="badge bg-warning text-dark">Repeat</span>{% else %}<span class="badge bg-primary">New</span>{% endif %}</td>
+                                    <td class="text-start">
+                                        <div class="text-truncate" style="max-width: 250px;" title="{{ o.address }}">{{ o.address }}</div>
+                                        <span class="text-muted small">{{ o.post_office }}, {{ o.district }}, {{ o.state }} - <b>{{ o.pincode }}</b></span>
+                                    </td>
                                     <td>
-                                        <div class="fw-bold mb-1">{{ o.status }}</div>
-                                        <div class="btn-group w-100">
-                                            <a href="{% url 'admin_update_status' o.id %}?status=Generated" class="btn btn-sm btn-success py-0">Gen</a>
-                                            <a href="{% url 'admin_update_status' o.id %}?status=Cancelled" class="btn btn-sm btn-danger py-0">Can</a>
+                                        <span class="small">{{ o.items_summary }}</span><br>
+                                        <b class="text-success fs-6">₹ {{ o.grand_total }}</b>
+                                    </td>
+                                    <td>{% if o.is_repeat %}<span class="badge bg-warning text-dark rounded-pill">Repeat</span>{% else %}<span class="badge bg-primary rounded-pill">New</span>{% endif %}</td>
+                                    <td>
+                                        <div class="fw-bold mb-2 {% if o.status == 'Generated' %}text-success{% elif o.status == 'Cancelled' %}text-danger{% else %}text-secondary{% endif %}">{{ o.status }}</div>
+                                        <div class="btn-group shadow-sm">
+                                            <a href="{% url 'admin_update_status' o.id %}?status=Generated" class="btn btn-sm btn-outline-success btn-custom">Gen</a>
+                                            <a href="{% url 'admin_update_status' o.id %}?status=Cancelled" class="btn btn-sm btn-outline-danger btn-custom">Can</a>
                                         </div>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-success w-100 fw-bold" onclick="sendWA('{{ o.customer_name }}', '{{ o.phone1 }}, {{ o.phone2 }}', '{{ o.address }}', '{{ o.post_office }}', '{{ o.tehsil }}', '{{ o.district }}', '{{ o.state }}', '{{ o.pincode }}', '{{ o.items_summary }}', '{{ o.grand_total }}', '{{ o.emp }}')">Send WA</button>
+                                        <button class="btn btn-sm btn-success btn-custom px-3 shadow-sm" onclick="sendWA('{{ o.customer_name }}', '{{ o.phone1 }}, {{ o.phone2 }}', '{{ o.address }}', '{{ o.post_office }}', '{{ o.tehsil }}', '{{ o.district }}', '{{ o.state }}', '{{ o.pincode }}', '{{ o.items_summary }}', '{{ o.grand_total }}', '{{ o.emp }}')">
+                                            WhatsApp
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
