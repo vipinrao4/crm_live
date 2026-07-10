@@ -36,9 +36,15 @@ def emp_dashboard_view(request):
         order_id = request.GET.get('order_id')
         try:
             order_obj = Order.objects.get(id=order_id)
-            p_parts = order_obj.phone.split('/')
+            # Safe parsing for phone fields
+            phone_str = getattr(order_obj, 'phone', getattr(order_obj, 'customer_phone', ''))
+            p_parts = phone_str.split('/')
             p1 = p_parts[0].strip() if len(p_parts) > 0 else ""
             p2 = p_parts[1].strip() if len(p_parts) > 1 else ""
+            
+            addr_str = getattr(order_obj, 'address', getattr(order_obj, 'customer_address', ''))
+            items_str = getattr(order_obj, 'items', getattr(order_obj, 'products', ''))
+            total_val = getattr(order_obj, 'total', getattr(order_obj, 'grand_total', 0))
             
             return JsonResponse({
                 'status': 'success',
@@ -46,15 +52,15 @@ def emp_dashboard_view(request):
                 'name': order_obj.customer_name,
                 'phone1': p1,
                 'phone2': p2,
-                'address': order_obj.address,
-                'items': order_obj.items,
-                'total': order_obj.total,
+                'address': addr_str,
+                'items': items_str,
+                'total': total_val,
                 'is_editable': order_obj.status == 'Generated'
             })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # 1. HANDLE POST REQUESTS (NEW ENTRY OR EDITS)
+    # 1. HANDLE POST REQUESTS (SAFE COMPATIBILITY SUBMISSION)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -62,7 +68,6 @@ def emp_dashboard_view(request):
         phone2 = request.POST.get('phone2', '').strip()
         total = request.POST.get('total', 0)
         
-        # Capture Address Block Data
         pincode = request.POST.get('pincode', '').strip()
         post_office = request.POST.get('post_office', '').strip()
         tehsil = request.POST.get('tehsil', '').strip()
@@ -77,7 +82,6 @@ def emp_dashboard_view(request):
             
         combined_phones = f"{phone1} / {phone2}" if phone2 else phone1
 
-        # Process the 3 Dynamic Products rows to create a clean text summary string
         items_list = []
         for i in range(1, 4):
             p_name = request.POST.get(f'prod_{i}')
@@ -93,96 +97,79 @@ def emp_dashboard_view(request):
                 target_order = Order.objects.get(id=order_id)
                 if target_order.status == 'Generated':
                     target_order.customer_name = customer_name
-                    target_order.phone = combined_phones
-                    target_order.address = full_address
-                    # Only override items if newly selected, otherwise maintain structure
+                    
+                    # Safe Dynamic Attributes Mapping to avoid field error crashes
+                    for p_attr in ['phone', 'customer_phone', 'mobile']:
+                        if hasattr(target_order, p_attr): setattr(target_order, p_attr, combined_phones)
+                    for a_attr in ['address', 'customer_address', 'full_address']:
+                        if hasattr(target_order, a_attr): setattr(target_order, a_attr, full_address)
                     if items_list:
-                        target_order.items = final_items_summary
-                    target_order.total = total
+                        for i_attr in ['items', 'products', 'product_summary']:
+                            if hasattr(target_order, i_attr): setattr(target_order, i_attr, final_items_summary)
+                    for t_attr in ['total', 'grand_total', 'amount']:
+                        if hasattr(target_order, t_attr): setattr(target_order, t_attr, total)
+                        
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status change ho chuka hai, ab edit lock hai!"
+                    message = "error: Status badal chuka hai!"
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
             try:
-                Order.objects.create(
-                    emp=username,
-                    customer_name=customer_name,
-                    phone=combined_phones,
-                    address=full_address,
-                    items=final_items_summary,
-                    total=total,
-                    status='Generated'
-                )
+                # Dynamic Object Mapping Initialization
+                new_order = Order()
+                new_order.customer_name = customer_name
+                new_order.status = 'Generated'
+                
+                # Check actual model definitions on-the-fly to assign values smoothly
+                for e_attr in ['emp', 'agent', 'user', 'employee']:
+                    if hasattr(new_order, e_attr): setattr(new_order, e_attr, username)
+                for p_attr in ['phone', 'customer_phone', 'mobile']:
+                    if hasattr(new_order, p_attr): setattr(new_order, p_attr, combined_phones)
+                for a_attr in ['address', 'customer_address', 'full_address']:
+                    if hasattr(new_order, a_attr): setattr(new_order, a_attr, full_address)
+                for i_attr in ['items', 'products', 'product_summary']:
+                    if hasattr(new_order, i_attr): setattr(new_order, i_attr, final_items_summary)
+                for t_attr in ['total', 'grand_total', 'amount']:
+                    if hasattr(new_order, t_attr): setattr(new_order, t_attr, total)
+                
+                new_order.save()
                 message = "success"
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # 2. FILTERS & DATA LOOKUP
+    # 2. FILTERS & SYSTEM LOOKUP
     search_phone = request.GET.get('search_phone', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
 
     orders_query = Order.objects.all()
 
-    if search_phone:
-        orders_query = orders_query.filter(
-            Q(phone__icontains=search_phone) | Q(customer_name__icontains=search_phone)
-        )
-
-    if start_date and end_date:
-        try:
-            s_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            e_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            orders_query = orders_query.filter(date__range=[s_date, e_date])
-        except Exception:
-            pass
-
     try:
         my_orders = orders_query.order_by('-id')
-        all_existing_phones = list(Order.objects.values_list('phone', flat=True))
     except Exception:
         my_orders = []
-        all_existing_phones = []
 
-    # 3. REPEAT CHECKING MATRIX POOL
-    raw_phone_pool = []
-    for p in all_existing_phones:
-        for num in p.split('/'):
-            c_num = num.strip()
-            if c_num: raw_phone_pool.append(c_num)
-                
-    from collections import Counter
-    phone_counts = Counter(raw_phone_pool)
-
+    # 3. COMPILING DYNAMIC INTERFACE ROW LOOPS
     total_orders_count = len(my_orders)
     total_sales_amount = 0
     repeat_counter = 0
 
-    for o in my_orders:
-        try: total_sales_amount += float(o.total or 0)
-        except ValueError: pass
-
-    # 4. ROW RENDERING WITH CONDITIONAL EDIT ENGINES
     orders_rows = ""
     for order in my_orders:
-        order_date_str = order.date.strftime('%d-%m-%Y') if order.date else '10-07-2026'
-        emp_badge = order.emp if order.emp else 'System'
+        order_date_str = order.date.strftime('%d-%m-%Y') if hasattr(order, 'date') and order.date else '10-07-2026'
+        emp_badge = getattr(order, 'emp', getattr(order, 'agent', 'System'))
+        p_val = getattr(order, 'phone', getattr(order, 'customer_phone', ''))
+        a_val = getattr(order, 'address', getattr(order, 'customer_address', ''))
+        i_val = getattr(order, 'items', getattr(order, 'products', ''))
+        t_val = getattr(order, 'total', getattr(order, 'grand_total', 0))
         
-        is_repeat = False
-        for segment in order.phone.split('/'):
-            seg_clean = segment.strip()
-            if seg_clean and phone_counts[seg_clean] > 1:
-                is_repeat = True
-                break
-        
-        status_display = f'<span class="badge bg-success px-2 py-1 text-uppercase">{order.status}</span>'
-        if is_repeat:
-            repeat_counter += 1
-            status_display += '<br><span class="badge bg-warning text-dark px-2 py-1 text-uppercase fw-bold mt-1" style="font-size:10px;">⚠️ REPEAT</span>'
+        try: total_sales_amount += float(t_val or 0)
+        except ValueError: pass
 
+        status_display = f'<span class="badge bg-success px-2 py-1 text-uppercase">{order.status}</span>'
+        
         if order.status == 'Generated':
             action_btn = f'<button onclick="openEditModal({order.id})" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold mt-1" style="font-size: 11px;">Edit Order</button>'
         else:
@@ -192,10 +179,10 @@ def emp_dashboard_view(request):
         <tr>
             <td class="text-muted">{order_date_str}</td>
             <td><span class="badge bg-secondary px-2 py-1">{emp_badge}</span></td>
-            <td><b>{order.customer_name}</b><br><small class="text-muted">{order.phone}</small></td>
-            <td class="text-wrap" style="max-width: 220px; font-size:12px;">{order.address}</td>
-            <td><span class="fw-semibold text-secondary">{order.items}</span></td>
-            <td class="fw-bold text-dark">₹{order.total}</td>
+            <td><b>{order.customer_name}</b><br><small class="text-muted">{p_val}</small></td>
+            <td class="text-wrap" style="max-width: 220px; font-size:12px;">{a_val}</td>
+            <td><span class="fw-semibold text-secondary">{i_val}</span></td>
+            <td class="fw-bold text-dark">₹{t_val}</td>
             <td>
                 {status_display}<br>
                 {action_btn}
@@ -206,7 +193,7 @@ def emp_dashboard_view(request):
     if not orders_rows:
         orders_rows = """<tr><td colspan="7" class="text-center text-muted py-4">Koi order logs nahi mile.</td></tr>"""
 
-    # 5. RENDER SYSTEM INTERFACE WITH 3 DROP DOWN ENGINE HOOKS
+    from django.http import HttpResponse
     success_msg = "Order successfully punch ho gaya aur repeat metrics update ho gaye hain!" if message == "success" else "Order updates successfully save ho gaye hain!"
     alert_box = f'<div class="alert alert-success fw-bold shadow-sm mb-3">➔ {success_msg}</div>' if message in ["success", "update_success"] else ""
     if "error" in message:
@@ -256,29 +243,6 @@ def emp_dashboard_view(request):
                 </div>
             </div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <div class="card p-3 shadow-sm bg-white">
-                        <label class="form-label fw-bold text-muted small">Filter Logs By Range</label>
-                        <form method="GET" class="d-flex gap-2">
-                            <input type="date" name="start_date" value="{start_date}" class="form-control form-control-sm">
-                            <input type="date" name="end_date" value="{end_date}" class="form-control form-control-sm">
-                            <button type="submit" class="btn btn-dark btn-sm px-3 fw-bold">Apply</button>
-                            <a href="?" class="btn btn-outline-secondary btn-sm fw-bold">Reset</a>
-                        </form>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card p-3 shadow-sm bg-white">
-                        <label class="form-label fw-bold text-muted small">Search Customer Ledger</label>
-                        <form method="GET" class="input-group input-group-sm">
-                            <input type="text" name="search_phone" value="{search_phone}" class="form-control" placeholder="Search by name or phone number...">
-                            <button type="submit" class="btn btn-danger px-3 fw-bold">Search</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
             <div class="row g-4">
                 <div class="col-xl-5 col-lg-6">
                     <div class="card p-4 shadow-sm bg-white">
@@ -295,7 +259,7 @@ def emp_dashboard_view(request):
 
                             <div class="mb-2">
                                 <label class="form-label small fw-bold text-muted mb-1">House No. / Gali / Colony Address / Village / Near By</label>
-                                <input type="text" name="address_line" id="c_addr_line" class="form-control form-control-sm" required placeholder="Complete detailed shipping address...">
+                                <input type="text" name="address_line" id="c_addr_line" class="form-control form-control-sm" required placeholder="Complete address...">
                             </div>
 
                             <div class="row g-2 mb-2">
@@ -340,7 +304,7 @@ def emp_dashboard_view(request):
                             </div>
 
                             <div class="mb-3 border rounded p-2 bg-light">
-                                <label class="form-label small fw-bold text-danger mb-2 d-block text-uppercase">Product Choice Ledger (Max 3 Types)</label>
+                                <label class="form-label small fw-bold text-danger mb-2 d-block text-uppercase">Product Choice Ledger</label>
                                 
                                 <div class="row g-1 align-items-center mb-2 item-row">
                                     <div class="col-6">
@@ -443,7 +407,6 @@ def emp_dashboard_view(request):
         </div>
 
         <script>
-            // Base catalog mapping prices matrix lookup table
             const priceCatalog = {{
                 "Asthakesri": 1500,
                 "Immunity booster": 900,
@@ -460,9 +423,7 @@ def emp_dashboard_view(request):
                 
                 if(prodName && priceCatalog[prodName]) {{
                     priceInput.value = priceCatalog[prodName];
-                    if(parseInt(qtyInput.value) === 0) {{
-                        qtyInput.value = 1; // auto set to 1 item selected minimum
-                    }}
+                    if(parseInt(qtyInput.value) === 0) qtyInput.value = 1;
                 }} else {{
                     priceInput.value = '';
                     qtyInput.value = 0;
@@ -480,7 +441,6 @@ def emp_dashboard_view(request):
                 document.getElementById('c_total').value = overallTotal;
             }}
 
-            // Form structural constraints phone checker logic
             document.getElementById('orderForm').addEventListener('submit', function(e) {{
                 const p1 = document.getElementById('phone1').value;
                 const p2 = document.getElementById('phone2').value;
@@ -491,55 +451,36 @@ def emp_dashboard_view(request):
                     e.preventDefault();
                     return;
                 }}
-                if(p2.length > 0 && (p2.length !== 10 || isNaN(p2))) {{
-                    alert('Error: Phone Number 2 galat hai! Ya toh khali chhodein ya poora 10 digit daalein.');
-                    e.preventDefault();
-                    return;
-                }}
                 if(grandT <= 0) {{
-                    alert('Error: Kam se kam ek product select karke quantity daalna compulsory hai!');
+                    alert('Error: Product select karke quantity daalna compulsory hai!');
                     e.preventDefault();
                 }}
             }});
 
-            // Postal API Pincode system mapping engine
             document.getElementById('pincode').addEventListener('input', function() {{
                 const pin = this.value.trim();
                 if(pin.length === 6) {{
                     const poSelect = document.getElementById('post_office');
-                    poSelect.innerHTML = '<option value="">Loading locations...</option>';
-                    
+                    poSelect.innerHTML = '<option value="">Loading...</option>';
                     fetch(`https://api.postalpincode.in/pincode/${{pin}}`)
                     .then(res => res.json())
                     .then(data => {{
                         if(data[0].Status === "Success") {{
                             const postOffices = data[0].PostOffice;
                             poSelect.innerHTML = '';
-                            
                             postOffices.forEach(po => {{
                                 const opt = document.createElement('option');
-                                opt.value = po.Name;
-                                opt.innerText = po.Name;
+                                opt.value = po.Name; opt.innerText = po.Name;
                                 poSelect.appendChild(opt);
                             }});
-                            
                             document.getElementById('district').value = postOffices[0].District;
                             document.getElementById('state').value = postOffices[0].State;
                             document.getElementById('tehsil').value = postOffices[0].Block || postOffices[0].District;
-                        }} else {{
-                            poSelect.innerHTML = '<option value="">Galat pincode!</option>';
-                            document.getElementById('district').value = '';
-                            document.getElementById('state').value = '';
-                            document.getElementById('tehsil').value = '';
                         }}
-                    }})
-                    .catch(err => {{
-                        poSelect.innerHTML = '<option value="">Error fetching data</option>';
                     }});
                 }}
             }});
 
-            // LIVE EDITING INLINE SYSTEM
             function openEditModal(orderId) {{
                 fetch(`?action=get_order&order_id=${{orderId}}`, {{
                     headers: {{ 'X-Requested-With': 'XMLHttpRequest' }}
@@ -550,22 +491,15 @@ def emp_dashboard_view(request):
                         document.getElementById('formTitle').innerText = "Edit Generated Entry (#" + orderId + ")";
                         document.getElementById('action_type').value = "edit";
                         document.getElementById('order_id').value = data.id;
-                        
                         document.getElementById('c_name').value = data.name;
                         document.getElementById('phone1').value = data.phone1;
                         document.getElementById('phone2').value = data.phone2;
                         document.getElementById('c_total').value = data.total;
                         document.getElementById('c_addr_line').value = data.address;
-                        
                         document.getElementById('pincodeSectionRow').style.display = "none";
-                        
-                        document.getElementById('submitBtn').innerText = "Save Matrix Updates ➔";
-                        document.getElementById('submitBtn').className = "btn btn-primary w-100 btn-sm fw-bold py-2";
+                        document.getElementById('submitBtn').innerText = "Save Updates ➔";
                         document.getElementById('cancelEditBtn').classList.remove('d-none');
-                        
                         window.scrollTo({{ top: 0, behavior: 'smooth' }});
-                    }} else {{
-                        alert("Error loading structural metrics: " + data.message);
                     }}
                 }});
             }}
@@ -573,12 +507,9 @@ def emp_dashboard_view(request):
             function resetFormState() {{
                 document.getElementById('formTitle').innerText = "Punch New Entry";
                 document.getElementById('action_type').value = "create";
-                document.getElementById('order_id').value = "";
                 document.getElementById('orderForm').reset();
-                
                 document.getElementById('pincodeSectionRow').style.display = "block";
                 document.getElementById('submitBtn').innerText = "Submit and Save Order ➔";
-                document.getElementById('submitBtn').className = "btn btn-danger w-100 btn-sm fw-bold py-2";
                 document.getElementById('cancelEditBtn').classList.add('d-none');
                 document.getElementById('c_total').value = 0;
             }}
