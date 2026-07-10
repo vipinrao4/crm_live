@@ -10,7 +10,6 @@ def dashboard(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return redirect('emp_dashboard')
 
-    # ADMIN DATA LOAD - Asli fields ke sath real database queries
     try:
         orders = Order.objects.all().order_by('-id')
         total_orders = orders.count()
@@ -18,7 +17,6 @@ def dashboard(request):
         orders = []
         total_orders = 0
 
-    # Repeat counts calculation for Admin dashboard counters
     try:
         all_existing_phones = list(Order.objects.values_list('phone', flat=True))
     except Exception:
@@ -52,7 +50,7 @@ def dashboard(request):
     return render(request, 'crm_core/admin_control.html', context)
 
 
-# ADMIN ACTION STATUS UPDATE CONTROLLER
+# EXPLICITLY DEFINED VIEW FOR STATUS UPDATES
 @login_required
 def admin_update_status(request, order_id):
     if request.user.is_staff or request.user.is_superuser:
@@ -73,7 +71,6 @@ def emp_dashboard_view(request):
     user_instance = request.user
     message = ""
     
-    # AJAX ENDPOINT FOR LIVE EDITING FETCHING
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' and request.GET.get('action') == 'get_order':
         order_id = request.GET.get('order_id')
         try:
@@ -97,7 +94,6 @@ def emp_dashboard_view(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
 
-    # HANDLE POST REQUESTS (SUBMIT & EDIT)
     if request.method == 'POST':
         action_type = request.POST.get('action_type', 'create')
         customer_name = request.POST.get('customer_name')
@@ -142,7 +138,7 @@ def emp_dashboard_view(request):
                     target_order.save()
                     message = "update_success"
                 else:
-                    message = "error: Status badal chuka hai! Edit locked hai."
+                    message = "error: Status change ho chuka hai! Edit lock hai."
             except Exception as e:
                 message = f"error: {str(e)}"
         else:
@@ -166,7 +162,6 @@ def emp_dashboard_view(request):
             except Exception as e:
                 message = f"error: {str(e)}"
 
-    # FETCH ORDER LOGS LOGIC
     orders_query = Order.objects.all()
     try:
         my_orders = orders_query.order_by('-id')
@@ -477,9 +472,9 @@ def emp_dashboard_view(request):
                                 opt.value = po.Name; opt.innerText = po.Name;
                                 poSelect.appendChild(opt);
                             }});
-                            document.getElementById('district').value = postOffices[0].District;
-                            document.getElementById('state').value = postOffices[0].State;
-                            document.getElementById('tehsil').value = postOffices[0].Block || postOffices[0].District;
+                            document.getElementById('district').value = data[0].PostOffice[0].District;
+                            document.getElementById('state').value = data[0].PostOffice[0].State;
+                            document.getElementById('tehsil').value = data[0].PostOffice[0].Block || data[0].PostOffice[0].District;
                         }}
                     }});
                 }}
